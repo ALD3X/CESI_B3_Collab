@@ -1,0 +1,29 @@
+# Lance Jenkins + un registre d'images local (équivalent de GHCR côté GitHub).
+# Usage : docker compose up -d --build   (depuis le dossier jenkins/)
+services:
+  jenkins:
+    build: .
+    container_name: jenkins-demo
+    # ⚠️ Démo uniquement : root + socket Docker = accès total à l'hôte (voir limites dans US-04.3)
+    user: root
+    ports:
+      - "8080:8080"
+    environment:
+      JENKINS_ADMIN_PASSWORD: "${JENKINS_ADMIN_PASSWORD:-admin}"
+      # Par défaut : le dépôt local monté en lecture seule. Sinon : URL du dépôt GitHub.
+      REPO_URL: "${REPO_URL:-file:///source}"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${SOURCE_DIR:-..}:/source:ro"
+    depends_on:
+      - registry
+
+  registry:
+    image: registry:2
+    container_name: registry-demo
+    ports:
+      - "5000:5000"
+
+volumes:
+  jenkins_home:

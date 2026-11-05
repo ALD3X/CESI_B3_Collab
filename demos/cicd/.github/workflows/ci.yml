@@ -1,0 +1,108 @@
+# Pipeline CI/CD — démo GitHub Actions (scénario de référence US-04.1)
+# Étapes identiques au Jenkinsfile : secrets → lint/tests → SAST/SCA → build → scan image → smoke test → publication
+name: CI/CD catalogue
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  GITLEAKS_IMAGE: zricethezav/gitleaks:v8.24.3
+  TRIVY_IMAGE: aquasec/trivy:0.65.0
+
+jobs:
+  # ---------- 1. Qualité et sécurité du code (3 jobs en parallèle) ----------
+  secrets:
+    name: "Secrets (gitleaks)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recherche de secrets dans le code
+        run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" dir /repo --no-banner --redact
+
+  lint-tests:
+    name: "Lint + tests unitaires"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Tests unitaires + couverture (seuil 80 %)
+        run: |
+          mkdir -p reports
+          pytest --junitxml=reports/junit.xml --cov=app --cov-report=xml:reports/coverage.xml \
+                 --cov-report=term --cov-fail-under=80 | tee reports/tests.txt
+      - name: Résumé dans l'interface GitHub
+        if: always()
+        run: |
+          echo "### Tests unitaires" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 12 reports/tests.txt >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapports-tests
+          path: reports/
+
+  sast-sca:
+    name: "SAST (bandit) + SCA (pip-audit)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: SAST - analyse statique de sécurité (bloquant si sévérité haute)
+        run: bandit -r app -lll
+      - name: SCA - vulnérabilités des dépendances
+        run: pip-audit -r requirements.txt
+
+  # ---------- 2. Build, scan de l'image, smoke test, publication ----------
+  build-scan-publish:
+    name: "Build + scan image + smoke test + publication"
+    needs: [secrets, lint-tests, sast-sca]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Calcul du nom de l'image
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/catalogue:${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+      - name: Build de l'image
+        run: docker build -t "$IMAGE" .
+      - name: Scan de l'image (bloquant si vulnérabilité CRITIQUE corrigeable)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" \
+            image --quiet --severity CRITICAL --ignore-unfixed --exit-code 1 "$IMAGE"
+      - name: Smoke test
+        run: sh ci/smoke-test.sh "$IMAGE" smoke-gha
+      - name: Connexion au registre GitHub (GHCR)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publication de l'image (branche main uniquement)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker push "$IMAGE"
+          echo "Image publiée : \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
