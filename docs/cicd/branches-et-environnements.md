@@ -62,21 +62,22 @@ Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seu
 
 ---
 
-## 4. Mise en œuvre dans les deux outils
+## 4. Mise en œuvre dans les deux chaînes
 
-| Mécanisme | GitHub Actions | Jenkins |
+| Mécanisme | GitHub Actions | Jenkins + Argo CD |
 |---|---|---|
 | Une chaîne par branche | Orchestrateur `pipeline.yml` : déclencheurs `push` et `pull_request` sur `dev`, `accp`, `prod`, appels conditionnés par `github.ref_name` vers des workflows réutilisables | Job **multi-branches** qui découvre `dev`, `accp`, `prod` et `feature/*` ; étapes conditionnées par `when { branch … }` |
-| Environnements | **Environnements GitHub** `accp`, `production` : historique des déploiements, secrets propres à chaque environnement | Étapes dédiées, cluster cible configuré une fois (`connecter-minikube.sh`) |
-| Cible de déploiement | Avec le secret `KUBECONFIG` de l'environnement : le vrai cluster. Sans : un **cluster éphémère** (kind) créé dans le runner. Dans les deux cas, **le cluster tire les images sur GHCR** grâce à un secret d'accès au registre | Le cluster Kubernetes local (minikube) et le Docker de l'hôte |
-| Approbation de la production | Workflow `mise-en-production.yml`, déclenché à la main par un compte de la liste `APPROBATEURS_PROD`, puis **approbation native** d'un relecteur de l'environnement `production` (limité à la branche `prod`) | Étape **`input`** native, réservée à l'utilisateur `admin`, expiration au bout de 30 min |
+| Environnements | **Environnements GitHub** `accp`, `production` : historique des déploiements, secrets propres à chaque environnement | **Applications Argo CD** `boutique-accp` (branche `accp`) et `boutique-prod` (branche `prod`) |
+| Déploiement | **Push** : le pipeline applique les manifestes avec `kubectl` (`infra/ci/deployer.sh`). Avec le secret `KUBECONFIG` de l'environnement : le vrai cluster. Sans : un **cluster éphémère** (kind) créé dans le runner | **Pull (GitOps)** : Jenkins transmet la version des images à Argo CD (`infra/ci/deployer-argocd.sh`) ; Argo CD, dans le cluster local (minikube), applique l'état décrit dans Git. Jenkins n'a **aucun accès** au cluster |
+| Approbation de la production | Workflow `mise-en-production.yml`, déclenché à la main par un compte de la liste `APPROBATEURS_PROD`, puis **approbation native** d'un relecteur de l'environnement `production` (limité à la branche `prod`) | Étape **`input`** native, réservée à l'utilisateur `admin`, expiration au bout de 30 min, puis **synchronisation manuelle** de `boutique-prod` (pas de synchronisation automatique en production) |
 | Commandes exécutées | Scripts du `package.json` (`npm run …`) : les mêmes que sur le poste du développeur | Les mêmes scripts npm. Les contrôles lancés dans l'image de leur outil (gitleaks, Semgrep, Trivy) appellent le même script `infra/ci/controles-securite.sh` |
 | Tests des applications | `turbo run test` (front et backend, cache turbo) | Front : `turbo run test` ; backend : la même commande Maven dans l'image Maven |
 | Pull requests obligatoires sur `accp` et `prod` | **Ruleset** GitHub : push direct, force-push et suppression refusés, pull request obligatoire, pour tous les comptes | Jenkins construit les branches telles qu'elles sont sur GitHub |
 | Promotion des images | `infra/ci/images.sh` (GHCR) | `infra/ci/images.sh` (registre local) |
+| Retour arrière en production | Script : `kubectl rollout undo` | Historique des synchronisations d'Argo CD : `argocd app rollback` |
 | Récupération des images par le cluster | Le cluster tire les images sur GHCR (`imagePullSecret` créé par `infra/ci/deployer.sh`) | Images chargées dans les nœuds minikube (le registre local n'est pas joignable depuis le cluster) |
 
-> **Constat :** sur un dépôt **privé** de l'offre gratuite, GitHub refuse la protection des branches et l'approbation des environnements (« *Upgrade to GitHub Pro or make this repository public* »). Le dépôt étant **public**, les deux sont actives. Jenkins offre ces contrôles sans condition d'offre, mais il faut l'exploiter. Ce point complète la comparaison de [US-04.4](comparaison-et-choix.md).
+> **Constat :** sur un dépôt **privé** de l'offre gratuite, GitHub refuse la protection des branches et l'approbation des environnements (« *Upgrade to GitHub Pro or make this repository public* »). Le dépôt étant **public**, les deux sont actives. Jenkins et Argo CD offrent ces contrôles sans condition d'offre, mais il faut les exploiter. Ce point complète la comparaison de [US-04.4](comparaison-et-choix.md).
 
 ---
 

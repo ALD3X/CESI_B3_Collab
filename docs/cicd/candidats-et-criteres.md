@@ -1,4 +1,4 @@
-# Sélection des deux solutions CI/CD et des critères
+# Sélection des deux chaînes CI/CD et des critères
 
 > **Story :** US-04.1 · **Jira :** [SCRUM-23](https://maalsi25.atlassian.net/browse/SCRUM-23) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
 > **Responsable :** Membre B · **Binôme :** Membre D
@@ -8,23 +8,28 @@
 
 ## 1. Solutions retenues
 
-| | **GitHub Actions** | **Jenkins** |
+On compare deux **chaînes CI/CD complètes**, de l'intégration continue jusqu'au déploiement en production.
+
+| | **GitHub Actions** | **Jenkins + Argo CD** |
 |---|---|---|
-| **Modèle** | Service **SaaS** intégré à la forge GitHub | Serveur **open source auto-hébergé** |
-| **Éditeur** | GitHub (Microsoft, États-Unis) | Communauté open source (Linux Foundation, CD Foundation) |
-| **Définition du pipeline** | Fichier YAML dans le dépôt (`.github/workflows/ci.yml`) | Fichier Groovy dans le dépôt (`Jenkinsfile`) |
-| **Exécution** | Runners hébergés par GitHub, ou runners auto-hébergés | Contrôleur et agents qu'on installe et maintient soi-même |
-| **Extensibilité** | Marketplace d'« actions » réutilisables | Environ 2 000 plugins |
+| **Modèle de CI** | Service **SaaS** intégré à la forge GitHub | Serveur **open source auto-hébergé** (Jenkins) |
+| **Modèle de déploiement** | **« Push »** : le pipeline applique lui-même les manifestes dans le cluster (`kubectl`) | **GitOps, « pull »** : Argo CD, installé **dans le cluster**, tire l'état souhaité depuis Git et l'applique |
+| **Éditeurs** | GitHub (Microsoft, États-Unis) | Communauté open source : Jenkins (CD Foundation), Argo CD (CNCF, projet *graduated*) |
+| **Définition** | Fichiers YAML dans le dépôt (`.github/workflows/`) | `Jenkinsfile` (Groovy) + applications Argo CD (YAML, `infra/argocd/`) |
+| **Exécution** | Runners hébergés par GitHub, ou runners auto-hébergés | Contrôleur Jenkins et ses agents ; Argo CD dans le cluster |
+| **Extensibilité** | Marketplace d'« actions » réutilisables | Environ 2 000 plugins Jenkins ; Argo CD : Kustomize, Helm, notifications, Image Updater |
 
-### Pourquoi ces deux solutions ?
+### Pourquoi ces deux chaînes ?
 
-1. **Ce sont deux modèles opposés**, ce qui rend la comparaison instructive pour la direction : *service managé clé en main* contre *outil maîtrisé et hébergé où l'on veut*.
-2. **Elles répondent à deux contraintes du projet qui s'opposent :**
+1. **Elles opposent deux modèles, à deux niveaux**, ce qui rend la comparaison instructive pour la direction :
+   - pour la CI : *service managé clé en main* contre *outil maîtrisé et hébergé où l'on veut* ;
+   - pour le déploiement : *pipeline qui pousse vers le cluster* contre *cluster qui tire son état depuis Git* (GitOps).
+2. **Elles répondent à des contraintes du projet qui s'opposent :**
    - **C-11 Petite équipe** (US-01.1), sans DevOps à plein temps au démarrage (US-02.3) : avantage au **SaaS**, sans serveur à maintenir.
-   - **C-04 Hébergement en Europe** et **C-03 sécurité forte** : avantage à l'**auto-hébergement**, avec un contrôle total sur la localisation et la configuration.
-3. **Ce sont deux références du marché** : Jenkins est historiquement l'outil CI le plus répandu, GitHub Actions le plus adopté parmi les solutions récentes.
+   - **C-04 Hébergement en Europe** et **C-03 sécurité forte** : avantage à l'**auto-hébergement** et au **GitOps**, où la CI ne détient aucun accès au cluster de production.
+3. **Ce sont des références du marché** : Jenkins est historiquement l'outil CI le plus répandu, GitHub Actions le plus adopté parmi les solutions récentes, et Argo CD l'outil GitOps le plus utilisé sur Kubernetes.
 
-> **Autres solutions écartées :** *GitLab CI* (proche de GitHub Actions dans son modèle, mais impose de migrer toute la forge) · *ArgoCD* (outil de **déploiement** GitOps seulement, pas de CI : pas comparable sur le même scénario) · *CircleCI* (SaaS proche de GitHub Actions, moins répandu).
+> **Autres solutions écartées :** *GitLab CI* (proche de GitHub Actions dans son modèle, mais impose de migrer toute la forge) · *Flux CD* (alternative GitOps à Argo CD, sans interface graphique intégrée : moins démonstratif) · *CircleCI* (SaaS proche de GitHub Actions, moins répandu).
 
 ---
 
@@ -41,7 +46,8 @@ Chaque critère est relié à un enjeu du projet et noté de 1 (faible) à 5 (ex
 | K5 | **Souveraineté et hébergement** | Localisation des exécutions et des données (code, logs, artefacts), dépendance à un fournisseur | C-04 Hébergement en Europe, RGPD | ×2 |
 | K6 | **Coût** | Licence, infrastructure, temps humain | Petite structure | ×2 |
 | K7 | **Richesse fonctionnelle et extensibilité** | Parallélisme, matrices, artefacts, intégrations (scans, registres, cloud) | Pipeline DevSecOps complet (US-02.2) | ×1 |
-| K8 | **Observabilité du pipeline** | Lisibilité de l'interface, logs, rapports de tests, historique | Détection rapide des blocages, feedback aux développeurs | ×1 |
+| K8 | **Observabilité du pipeline** | Lisibilité de l'interface, logs, rapports de tests, historique, **état déployé visible** | Détection rapide des blocages, feedback aux développeurs | ×1 |
+| K9 | **Fiabilité du déploiement** | Détection et correction des écarts entre le cluster et Git, retour arrière, traçabilité de ce qui est déployé, accès au cluster nécessaires à la CI | Disponibilité pendant les ventes (US-02.1), sécurité de la production (C-03) | ×2 |
 
 ---
 
@@ -67,7 +73,8 @@ flowchart LR
     P --> BI["2. Build<br/>9 images"]
     BI --> V["3. Scan des images<br/>Trivy"]
     V --> SM["4. Test de bout en bout<br/>boutique complète"]
-    SM --> PUB["5. Publication<br/>registre (main)"]
+    SM --> PUB["5. Publication<br/>registre (accp)"]
+    PUB --> DEP["6. Déploiement<br/>recette, puis production"]
 ```
 
 | # | Étape | Outil (identique des deux côtés) | Quality gate (bloquant si…) |
@@ -79,15 +86,18 @@ flowchart LR
 | 2 | Build des images | Docker Compose | échec de construction |
 | 3 | Scan des images | Trivy (script commun `infra/ci/scan-images.sh`) | vulnérabilité **critique** corrigeable, hors exception justifiée et datée (`.trivyignore.yaml`) |
 | 4 | Test de bout en bout | script commun `infra/ci/smoke-test.sh` : la boutique complète démarre, un parcours client est joué (connexion, commande, événement reçu par le bus, accès refusé sans jeton) | un contrôle échoue ou la boutique ne démarre pas en 5 min |
-| 5 | Publication | registre d'images | — (branche `main` uniquement) |
+| 5 | Publication | registre d'images | — (branches `accp` et `prod` uniquement) |
+| 6 | Déploiement | GitHub Actions : `kubectl` depuis le pipeline · Jenkins + Argo CD : synchronisation par Argo CD | test de fumée en échec (retour arrière en production) |
 
 **Équivalences entre outils :**
 
-| Élément | GitHub Actions | Jenkins |
+| Élément | GitHub Actions | Jenkins + Argo CD |
 |---|---|---|
 | Registre d'images | GitHub Container Registry (GHCR) | Registre local (conteneur `registry:2`) |
 | Déclenchement | Push et PR (webhook natif) | Polling Git toutes les minutes (un webhook est possible si Jenkins est accessible depuis la forge) |
-| Parallélisme | 3 jobs parallèles | 3 branches `parallel` |
+| Parallélisme | 4 jobs parallèles | 4 branches `parallel` |
+| Déploiement | Le pipeline applique les manifestes (`infra/ci/deployer.sh`) avec les accès au cluster | Jenkins transmet la version à Argo CD (`infra/ci/deployer-argocd.sh`), qui applique l'état décrit dans Git |
+| Approbation de la production | Relecteur obligatoire de l'environnement `production` | Étape `input` de Jenkins, puis synchronisation manuelle de l'application Argo CD |
 
 ### 3.3 Mesures relevées pendant les démos
 
@@ -97,7 +107,7 @@ Pour chaque outil, on consigne :
 - le **comportement en cas d'échec** : scénarios `regression` (test métier cassé) et `secret` (jeton commité), via `tools/demo/scenario.sh` ;
 - les **points de friction** rencontrés.
 
-Analyse : [US-04.2](demo-github-actions.md) · [US-04.3](demo-jenkins.md) · [US-04.4](comparaison-et-choix.md)
+Analyse : [US-04.2](demo-github-actions.md) · [US-04.3](demo-jenkins-argocd.md) · [US-04.4](comparaison-et-choix.md)
 
 ---
 

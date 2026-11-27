@@ -3,7 +3,7 @@
 Projet collaboratif CESI : la démarche de développement de la plateforme `petitemaisonepouvante.com`, et une **boutique de démonstration** (front React + microservices Spring Boot) qui sert de support à toutes les démos de la soutenance.
 
 - **Documentation :** [docs/README.md](docs/README.md)
-- **Démos :** deux chaînes CI/CD (GitHub Actions, Jenkins), deux comparaisons techniques (RabbitMQ / Kafka, Spring Cloud Gateway / Kong), Kubernetes
+- **Démos :** deux chaînes CI/CD (GitHub Actions ; Jenkins + Argo CD en GitOps), deux comparaisons techniques (RabbitMQ / Kafka, Spring Cloud Gateway / Kong), Kubernetes
 
 ---
 
@@ -13,7 +13,7 @@ Projet collaboratif CESI : la démarche de développement de la plateforme `peti
 |---|---|
 | [`apps/front`](apps/front) | Front React + Vite |
 | [`apps/back`](apps/back) | Microservices Spring Boot : identité, catalogue, commandes, notifications, expédition, passerelle |
-| [`infra/`](infra) | Docker Compose, Kubernetes, Jenkins, scripts CI/CD, images Kong et PostgreSQL |
+| [`infra/`](infra) | Docker Compose, Kubernetes, Jenkins, Argo CD, scripts CI/CD, images Kong et PostgreSQL |
 | [`tools/`](tools) | Lancement de la boutique et scénarios de démonstration |
 | [`docs/`](docs) | Documentation du projet |
 | [`.github/workflows/`](.github/workflows), [`Jenkinsfile`](Jenkinsfile) | Les deux pipelines CI/CD |
@@ -57,11 +57,12 @@ npm run boutique:arreter     # ajouter « -- --effacer » pour supprimer aussi l
 | **Tests** | `test` (front + backend), `test:front`, `test:back`, `test:e2e` (boutique complète, parcours client) |
 | **Sécurité** | `securite` (les trois), `securite:secrets` (gitleaks), `securite:sast` (Semgrep), `securite:sca` (Trivy) |
 | **Images** | `images:version`, `images:build`, `images:scan`, `images:publier`, `images:present`, `images:etiqueter` |
-| **Déploiement** | `deployer -- accp`, `deployer -- prod` |
+| **Déploiement** | `deployer -- accp` (GitHub Actions, `kubectl`), `deployer:argocd -- accp` (Jenkins, par Argo CD) ; idem avec `prod` |
 | **Boutique locale** | `boutique:demarrer`, `boutique:etat`, `boutique:arreter`, `boutique -- bus kafka`, `boutique -- passerelle kong` |
 | **Démos** | `scenario:bus`, `scenario:passerelle -- spring` (ou `kong`), `scenario:mesures`, `scenario:pipeline-rouge -- regression` (ou `secret`, `reset`) |
 | **Kubernetes** | `k8s -- preparer`, puis `deployer`, `auto-reparation`, `cloisonnement`, `nettoyer` |
-| **Jenkins** | `jenkins:demarrer` (http://localhost:8090, `admin` / `admin`), `jenkins:connecter` (accès au cluster), `jenkins:arreter` |
+| **Jenkins** | `jenkins:demarrer` (http://localhost:8090, `admin` / `admin`), `jenkins:connecter` (réseau du cluster), `jenkins:arreter` |
+| **Argo CD** | `argocd:installer` (dans le cluster, relié à Jenkins), `argocd:ouvrir` (https://localhost:8443) |
 
 Consoles : RabbitMQ http://localhost:15672 (`demo` / `demo`) · Kafka http://localhost:8081 · Kong http://localhost:8002
 
@@ -69,7 +70,9 @@ Consoles : RabbitMQ http://localhost:15672 (`demo` / `demo`) · Kafka http://loc
 
 ## CI/CD
 
-Les deux pipelines font les mêmes étapes, avec les mêmes scripts npm.
+Deux chaînes comparées, avec les mêmes étapes et les mêmes scripts npm :
+- **GitHub Actions** : CI et déploiement « push » (le pipeline applique les manifestes dans le cluster) ;
+- **Jenkins + Argo CD** : Jenkins fait la CI, **Argo CD** déploie en GitOps « pull » (il applique, depuis le cluster, l'état décrit dans Git).
 
 | Branche | Ce que fait le pipeline |
 |---|---|
@@ -86,6 +89,6 @@ gh pr create --base prod --head accp --fill && gh pr merge --merge   # vers la p
 
 Mettre en production :
 - **GitHub Actions** : `gh workflow run mise-en-production.yml --ref prod`, puis approbation dans l'onglet Actions
-- **Jenkins** : bouton « Mettre en production » sur le build `prod`
+- **Jenkins + Argo CD** : bouton « Mettre en production » sur le build `prod`, puis Argo CD synchronise la production
 
 Détails : [branches et environnements](docs/cicd/branches-et-environnements.md).

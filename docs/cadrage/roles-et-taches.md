@@ -170,7 +170,7 @@ Chaque comparaison est présentée par la personne qui l'a menée, et une person
 | Membre | Présente | Démos |
 |---|---|---|
 | **A** | Vision d'ensemble : besoin, qualité, architecture, DevSecOps, Kubernetes, tests, sécurité, recommandation et bilan | Kubernetes |
-| **B** | Comparaison CI/CD : GitHub Actions et Jenkins | GitHub Actions, Jenkins |
+| **B** | Comparaison CI/CD : GitHub Actions et Jenkins + Argo CD | GitHub Actions, Jenkins + Argo CD |
 | **C** | Solution technique n°1 : bus d'événements, RabbitMQ et Kafka | RabbitMQ, Kafka |
 | **D** | Solution technique n°2 : passerelle d'API, Spring Cloud Gateway et Kong | Spring Cloud Gateway et Kong |
 

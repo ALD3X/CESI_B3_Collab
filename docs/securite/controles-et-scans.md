@@ -87,7 +87,7 @@ flowchart LR
 
 ### Mise en œuvre réelle sur la boutique de démonstration
 
-Les contrôles ci-dessus tournent dans le pipeline de la [boutique](../../README.md) (GitHub Actions et Jenkins). Au premier passage, le **scan des images a bloqué la livraison**. Chaque constat a été traité selon les règles de cette page :
+Les contrôles ci-dessus tournent dans le pipeline de la [boutique](../../README.md) (GitHub Actions et Jenkins + Argo CD). Au premier passage, le **scan des images a bloqué la livraison**. Chaque constat a été traité selon les règles de cette page :
 
 | Constat (Trivy, sévérité critique, correctif disponible) | Traitement | Type |
 |---|---|---|

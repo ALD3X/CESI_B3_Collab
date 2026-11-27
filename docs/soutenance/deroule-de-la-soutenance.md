@@ -13,7 +13,7 @@
 | Membre | Rôle dans la soutenance | Temps de parole | Démos |
 |---|---|---|---|
 | **A** | **Vision d'ensemble** : besoin, qualité, architecture, DevSecOps, Kubernetes, tests, sécurité, recommandation et bilan | 7:30 | Kubernetes |
-| **B** | **Comparaison CI/CD** : GitHub Actions et Jenkins, chaîne dev → accp → prod | 5:00 | GitHub Actions, Jenkins |
+| **B** | **Comparaison CI/CD** : GitHub Actions et Jenkins + Argo CD, chaîne dev → accp → prod | 5:00 | GitHub Actions, Jenkins + Argo CD |
 | **C** | **Solution technique n°1** : bus d'événements, RabbitMQ et Kafka | 4:00 | RabbitMQ, Kafka |
 | **D** | **Solution technique n°2** : passerelle d'API, Spring Cloud Gateway et Kong | 3:00 | Spring Cloud Gateway et Kong |
 
@@ -31,7 +31,7 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 | 02:45 | 1:00 | A | **Cycle DevSecOps** et **métiers** | Schémas | DevSecOps, métiers |
 | 03:45 | 0:30 | B | CI/CD : candidats et critères | Slide | CI/CD |
 | 04:15 | **2:00** | B | **Démo GitHub Actions** : de dev à la production | Démo | CI/CD |
-| 06:15 | **2:00** | B | **Démo Jenkins** : pipeline rouge, approbation de la production | Démo | CI/CD, tests, sécurité |
+| 06:15 | **2:00** | B | **Démo Jenkins + Argo CD** : pipeline rouge, déploiement GitOps, correction d'écart | Démo | CI/CD, tests, sécurité |
 | 08:15 | 0:30 | B | Verdict CI/CD | Slide | CI/CD |
 | 08:45 | 0:30 | C | Bus d'événements : rôle dans l'architecture, critères | Slide | Solutions techniques |
 | 09:15 | **1:30** | C | **Démo RabbitMQ** | Démo | Solutions techniques |
@@ -70,8 +70,8 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 
 | Séquence | Message oral |
 |---|---|
-| Critères | « Deux philosophies : un service intégré à la forge, GitHub Actions, et un serveur que l'on héberge, Jenkins. Même pipeline, mêmes outils, mêmes scripts des deux côtés, pour comparer ce qui compte vraiment. » |
-| Verdict | « GitHub Actions : rien à maintenir, intégré au dépôt, mais des runners hors d'Europe et des fonctions qui dépendent de l'offre. Jenkins : contrôle total et hébergement en Europe, au prix de l'exploitation d'un serveur. » |
+| Critères | « Deux philosophies, à deux niveaux. Pour la CI : un service intégré à la forge, GitHub Actions, contre un serveur que l'on héberge, Jenkins. Pour le déploiement : un pipeline qui pousse dans le cluster, contre Argo CD, qui tire l'état décrit dans Git depuis l'intérieur du cluster. Même scénario, mêmes scripts des deux côtés. » |
+| Verdict | « GitHub Actions gagne sur la CI : rien à maintenir, pour une petite équipe. Argo CD gagne sur le déploiement : la CI ne détient plus les accès à la production, et tout écart avec Git est corrigé. Notre choix : GitHub Actions pour la CI, Argo CD pour le déploiement dès que le cluster européen est en place. » |
 
 ### C : bus d'événements
 
@@ -101,15 +101,16 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 | 1:20 | Onglet *Environments*, run `prod` | « Seule une version recettée peut partir en production, et uniquement par le workflow de mise en production, réservé aux approbateurs. » |
 | 1:45 | — | « Recette et production n'acceptent que des pull requests, imposées par GitHub, et la mise en production attend l'approbation d'un relecteur. Limite : sur un dépôt privé, ces protections exigent l'offre payante. » |
 
-### Démo 2 : Jenkins (B, 2:00)
+### Démo 2 : Jenkins + Argo CD (B, 2:00)
 
 | Temps | Action à l'écran | Message oral |
 |---|---|---|
-| 0:00 | http://localhost:8090, job multi-branches **créé par le code** | « Le même pipeline, sur notre propre serveur, hébergeable en Europe. Il découvre seul les branches dev, accp et prod. » |
+| 0:00 | http://localhost:8090, job multi-branches **créé par le code** | « Le même pipeline, sur notre propre serveur, hébergeable en Europe. Jenkins fait l'intégration continue, et ne touche jamais au cluster. » |
 | 0:20 | **En direct :** `npm run scenario:pipeline-rouge -- secret`, puis commit sur `dev` | « Un développeur commite la clé d'API du prestataire de paiement… » |
-| 0:50 | gitleaks rouge, publication sautée | « …la livraison est bloquée. C'est la quality gate de sécurité. » |
-| 1:10 | Build `prod` arrêté sur l'étape **Approbation** : clic sur « Mettre en production » | « En production, Jenkins attend un humain. Si le test de fumée échoue après le déploiement, retour arrière automatique. » |
-| 1:45 | `npm run scenario:pipeline-rouge -- reset` | « Le prix à payer : un serveur et des plugins à exploiter. » |
+| 0:40 | gitleaks rouge, publication sautée | « …la livraison est bloquée. C'est la quality gate de sécurité. » |
+| 0:55 | Interface Argo CD (`npm run argocd:ouvrir`), application `boutique-accp` | « Le déploiement, c'est Argo CD, dans le cluster. Il compare en permanence le cluster à Git : voici la recette, synchronisée, avec sa version. » |
+| 1:15 | **En direct :** `kubectl -n accp-applicative delete deployment catalogue` | « Quelqu'un supprime un service à la main… Argo CD détecte l'écart avec Git et le recrée tout seul. » |
+| 1:45 | Build `prod` arrêté sur l'étape **Approbation** | « En production, Jenkins attend un humain, puis Argo CD synchronise. Le prix à payer : deux outils à exploiter. » |
 
 ### Démo 3 : RabbitMQ (C, 1:30)
 
@@ -167,7 +168,7 @@ Les autres complètent si besoin. Chacun doit pouvoir défendre l'ensemble des c
 ### La veille (J-1)
 
 - [ ] `npm run boutique:demarrer`, puis `npm run boutique -- bus kafka` et retour à `rabbit` : toutes les images sont en cache, démo **sans Internet**.
-- [ ] Un **run vert** sur GitHub Actions **et** sur Jenkins (`npm run jenkins:demarrer`).
+- [ ] Un **run vert** sur GitHub Actions **et** sur Jenkins + Argo CD (`npm run jenkins:demarrer`, `npm run jenkins:connecter`, `npm run argocd:installer`).
 - [ ] `npm run k8s -- preparer` puis `deployer` (environ 8 min).
 - [ ] Lancer `tools/scenarios/bus.py` sur les deux bus et `tools/scenarios/passerelle.py` sur les deux passerelles : **7/7, 7/7, 12/12 et 11/12** attendus.
 - [ ] Enregistrer une **vidéo de secours** de 1 à 2 min par démo (6 vidéos), copiées sur 2 ordinateurs et une clé USB.
@@ -179,7 +180,7 @@ Les autres complètent si besoin. Chacun doit pouvoir défendre l'ensemble des c
 - [ ] `minikube start -p boutique` (le cluster garde les déploiements de la veille).
 - [ ] **20 min avant :** lancer un build de la branche `prod` dans Jenkins (*Build Now*) : il doit attendre l'approbation pendant la démo de B (la demande expire au bout de 30 min).
 - [ ] Remettre la boutique sur la passerelle Spring (`npm run boutique -- passerelle spring`) avant la démo de D.
-- [ ] Ouvrir les onglets dans l'ordre de passage : GitHub Actions, Jenkins (:8090), boutique (:3000), console RabbitMQ (:15672), kafka-ui (:8081). Ouvrir 4 terminaux nommés (CI, BUS, PASSERELLE, K8S).
+- [ ] Ouvrir les onglets dans l'ordre de passage : GitHub Actions, Jenkins (:8090), Argo CD (:8443, `npm run argocd:ouvrir`), boutique (:3000), console RabbitMQ (:15672), kafka-ui (:8081). Ouvrir 4 terminaux nommés (CI, BUS, PASSERELLE, K8S).
 - [ ] Passer une commande dans la boutique **une fois à blanc** (la notification doit s'afficher).
 - [ ] Désactiver les notifications et la mise en veille de l'ordinateur.
 

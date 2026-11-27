@@ -119,4 +119,4 @@ Les scénarios `regression` et `secret` (`tools/demo/scenario.sh`) bloquent la l
 
 ---
 
-[← Sélection des deux solutions CI/CD et des critères](candidats-et-criteres.md) · [Sommaire](../README.md) · [Démonstration du second outil : Jenkins →](demo-jenkins.md)
+[← Sélection des deux solutions CI/CD et des critères](candidats-et-criteres.md) · [Sommaire](../README.md) · [Démonstration du second outil : Jenkins →](demo-jenkins-argocd.md)

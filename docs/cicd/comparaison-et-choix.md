@@ -2,23 +2,25 @@
 
 > **Story :** US-04.4 · **Jira :** [SCRUM-26](https://maalsi25.atlassian.net/browse/SCRUM-26) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
 > **Responsable :** Membre B · **Binôme :** Membre D
-> **Entrées :** [US-04.1, critères](candidats-et-criteres.md) · [US-04.2, démo GitHub Actions](demo-github-actions.md) · [US-04.3, démo Jenkins](demo-jenkins.md)
+> **Entrées :** [US-04.1, critères](candidats-et-criteres.md) · [US-04.2, démo GitHub Actions](demo-github-actions.md) · [US-04.3, démo Jenkins + Argo CD](demo-jenkins-argocd.md)
 
 ---
 
 ## 1. Ce que les démonstrations montrent
 
-| Observation | GitHub Actions | Jenkins | Source |
+| Observation | GitHub Actions | Jenkins + Argo CD | Source |
 |---|---|---|---|
-| **Mise en place** | Un fichier YAML suffit, aucun serveur | Image personnalisée, 9 plugins, configuration JCasC et Job DSL, registre à part | US-04.2 §6, US-04.3 §5 n°1 |
-| **Même scénario** | 7 étapes, 3 en parallèle | Mêmes 7 étapes, 3 en parallèle | US-04.1 §3 |
-| **Détection d'une régression** | Job backend rouge, statut rouge sur la PR, images non construites | Étape backend rouge, tests en échec affichés avec leur tendance, build, scan et publication **sautés** | US-04.2 §4, US-04.3 §4 |
-| **Détection d'un secret** | gitleaks bloque, et la *push protection* GitHub peut bloquer **avant** le pipeline | gitleaks bloque, clé masquée dans les journaux | US-04.3 §4 |
-| **Chaîne dev → accp → prod** | Environnements GitHub, promotion des images, **ruleset** (pull requests obligatoires) et **approbation native** de la production. Sur un dépôt **privé**, ces deux protections exigent l'offre Pro | Job multi-branches, étape `input` d'approbation **native et gratuite**, déploiement réel sur le cluster local | [US-04.5](branches-et-environnements.md) |
-| **Déclenchement** | Webhook natif : quelques secondes | Polling : jusqu'à 1 min (webhook seulement si Jenkins est exposé) | US-04.3 §5 n°6 |
-| **Intégration à la revue de code** | Statut affiché nativement sur chaque PR | Nécessite des plugins et la configuration d'un webhook vers la forge | US-04.2 §3 |
-| **Isolation des exécutions** | Runner neuf pour chaque job | Conteneurs jetables, mais **socket Docker partagé = root sur l'hôte** | US-04.3 §5 n°2 |
-| **Exécution hors-ligne** | Impossible | Entièrement local | US-04.3 §6 |
+| **Mise en place** | Des fichiers YAML suffisent, aucun serveur | Image Jenkins, plugins, JCasC et Job DSL, **puis** installation et configuration d'Argo CD dans le cluster | US-04.2 §2, US-04.3 §6 n°1 |
+| **Même scénario de CI** | Contrôles en parallèle, images, scan, test de bout en bout | Mêmes étapes, mêmes scripts npm | US-04.1 §3 |
+| **Modèle de déploiement** | **Push** : le pipeline applique les manifestes avec `kubectl` | **Pull** : Argo CD, dans le cluster, applique l'état décrit dans Git | US-04.3 §1 |
+| **Accès au cluster depuis la CI** | Nécessaire : `KUBECONFIG` dans les secrets de l'environnement GitHub | **Aucun** : un jeton Argo CD limité au projet `boutique` | US-04.3 §2 |
+| **Écart entre le cluster et Git** | Non détecté entre deux exécutions du pipeline | **Détecté** en permanence, et **corrigé automatiquement** en recette (*selfHeal*) | US-04.3 §4 n°3 |
+| **Retour arrière en production** | Script (`kubectl rollout undo`) | Historique des synchronisations d'Argo CD | US-04.3 §5 |
+| **Visibilité de ce qui est déployé** | Historique des déploiements des environnements GitHub | **Arbre des ressources** en direct, version et état de santé dans l'interface d'Argo CD | US-04.3 §4 n°2 |
+| **Détection d'une régression ou d'un secret** | Job rouge, statut rouge sur la PR, rien n'est publié | Étape rouge, tests en échec affichés, rien n'est publié | US-04.2 §4, US-04.3 §5 |
+| **Chaîne dev → accp → prod** | Environnements GitHub, ruleset (pull requests obligatoires), approbation native de la production | Job multi-branches, étape `input` d'approbation, synchronisation manuelle de la production | [US-04.5](branches-et-environnements.md) |
+| **Déclenchement** | Webhook natif : quelques secondes | Polling Jenkins : jusqu'à 1 min ; Argo CD compare le cluster à Git toutes les 60 s | US-04.3 §6 n°6 |
+| **Ressources consommées** | Rien sur notre infrastructure | Serveur Jenkins, plus les composants d'Argo CD dans le cluster (nœuds locaux agrandis pour la démo) | US-04.3 §6 n°3 |
 
 ---
 
@@ -29,20 +31,19 @@
 | Forces | Faiblesses | Limites |
 |---|---|---|
 | Aucune infrastructure à maintenir | Code, logs et artefacts traités **par défaut aux États-Unis** | **Dépendance forte** à GitHub (forge + CI + registre) |
-| Intégration native avec les PR, le registre GHCR et les jetons éphémères | Actions tierces = risque de **chaîne d'approvisionnement** (à figer par SHA) | **Quotas** de minutes sur les dépôts privés, puis facturation à la minute |
-| Runner neuf à chaque job : isolation forte | Débogage : pas d'exécution locale native | Personnalisation limitée de l'environnement des runners hébergés |
-| Moindre privilège simple (`permissions:` par job) | | Runners auto-hébergés possibles, mais réintroduisent la maintenance |
-| Prise en main rapide par des alternants | | |
+| Intégration native avec les PR, le registre GHCR et les jetons éphémères | Le pipeline doit **détenir les accès au cluster** pour déployer | Rien ne surveille le cluster entre deux exécutions : un changement manuel passe inaperçu |
+| Runner neuf à chaque job : isolation forte | Actions tierces = risque de **chaîne d'approvisionnement** | **Quotas** de minutes sur les dépôts privés |
+| Moindre privilège simple (`permissions:` par job), approbation native de la production | Débogage : pas d'exécution locale native | Runners auto-hébergés possibles, mais réintroduisent la maintenance |
 
-### Jenkins
+### Jenkins + Argo CD
 
 | Forces | Faiblesses | Limites |
 |---|---|---|
-| **Hébergé où l'on veut** (cloud français, UE) : souveraineté totale | **Mise en place longue** et expertise requise | **Doit être exploité comme un service de production** : disponibilité, sauvegardes, mises à jour |
-| Indépendant de la forge (GitHub, GitLab…) | **Plugins = dette** : mises à jour fréquentes, alertes de sécurité régulières | Serveur central = **cible de valeur** pour un attaquant (accès aux secrets et au code) |
-| Extensibilité maximale (environ 2 000 plugins) | Durcissement de la sécurité entièrement à notre charge (socket Docker, CSRF, accès) | Interface vieillissante. L'intégration aux PR demande de la configuration |
-| Fonctionne hors-ligne, pas de quotas | Déclenchement par polling sans exposition publique | Charge humaine : environ 10 à 20 % d'un ETP DevOps |
-| Configuration as Code possible (JCasC) | | |
+| **Hébergé où l'on veut** (cloud européen) : souveraineté totale de toute la chaîne | **Deux outils** à installer, sécuriser et maintenir | **Doit être exploité comme un service de production** : disponibilité, sauvegardes, mises à jour |
+| **GitOps** : Git est la référence, tout écart est visible et corrigé | **Plugins Jenkins = dette** : mises à jour fréquentes, alertes de sécurité | Serveur Jenkins = **cible de valeur** pour un attaquant (code, secrets) |
+| **La CI n'a aucun accès au cluster** : seul Argo CD, à l'intérieur, déploie | Composants d'Argo CD à faire tenir dans le cluster | Dans la démo, la version des images est transmise en paramètre : l'état déployé n'est pas entièrement dans Git (corrigé en production par *Argo CD Image Updater*) |
+| Interface Argo CD : état déployé, santé et historique en direct ; retour arrière en un geste | Durcissement de Jenkins à notre charge (socket Docker, accès) | Charge humaine : environ 15 à 25 % d'un ETP DevOps pour les deux outils |
+| Approbation (`input`) native et gratuite, fonctionne hors forge | | |
 
 ---
 
@@ -50,45 +51,45 @@
 
 Notes de 1 (faible) à 5 (excellent). Les poids sont définis dans [US-04.1](candidats-et-criteres.md) §2.
 
-| Critère | Poids | GitHub Actions | Jenkins | Justification |
+| Critère | Poids | GitHub Actions | Jenkins + Argo CD | Justification |
 |---|---|---|---|---|
-| K1 Simplicité de mise en place | ×3 | **5** | 2 | Un YAML contre une image, des plugins et JCasC (US-04.3, friction n°1) |
+| K1 Simplicité de mise en place | ×3 | **5** | 2 | Des YAML contre deux outils à installer et à relier |
 | K2 Intégration au dépôt | ×2 | **5** | 3 | Statut PR natif contre webhook et plugins à configurer |
-| K3 Sécurité de la chaîne CI/CD | ×3 | **4** | 3 | Runners éphémères, jetons éphémères, `permissions:` contre un serveur persistant, des plugins et un socket à durcir. Risque des actions tierces côté GitHub |
-| K4 Maintenance | ×3 | **5** | 2 | Rien à maintenir contre un service à exploiter |
+| K3 Sécurité de la chaîne CI/CD | ×3 | 4 | 4 | GitHub : runners et jetons éphémères, mais accès au cluster dans la CI. Jenkins + Argo CD : aucun accès au cluster dans la CI, mais un serveur Jenkins à durcir |
+| K4 Maintenance | ×3 | **5** | 1 | Rien à maintenir contre deux services à exploiter |
 | K5 Souveraineté et hébergement | ×2 | 2 | **5** | Exécutions aux États-Unis par défaut contre hébergement libre dans l'UE |
-| K6 Coût | ×2 | **4** | 3 | Gratuit dans les quotas contre licence gratuite mais infrastructure et temps humain |
-| K7 Richesse et extensibilité | ×1 | 4 | **5** | Marketplace riche contre écosystème de plugins le plus vaste |
-| K8 Observabilité du pipeline | ×1 | 4 | 4 | Interface moderne et résumés contre Stage View, historique JUnit et tendances |
-| **Total (sur 85)** | | **72** | **52** | |
+| K6 Coût | ×2 | **4** | 3 | Gratuit dans les quotas contre licences gratuites mais infrastructure et temps humain |
+| K7 Richesse et extensibilité | ×1 | 4 | **5** | Marketplace riche contre plugins Jenkins et écosystème Argo CD |
+| K8 Observabilité | ×1 | 4 | **5** | Résumés des runs contre Stage View, tendances des tests et arbre des ressources déployées |
+| K9 Fiabilité du déploiement | ×2 | 3 | **5** | Déploiement ponctuel par script contre réconciliation permanente, correction des écarts et historique |
+| **Total (sur 95)** | | **78** | **63** | |
 
-**Analyse de sensibilité :** même en portant le poids de la souveraineté (K5) à ×5, GitHub Actions reste devant (**78** contre **67**). Le classement ne s'inverse que si l'**hébergement UE de la CI** devient une **exigence bloquante** et non plus un souhait.
+**Analyse de sensibilité :** en portant le poids de la souveraineté (K5) à ×5, l'écart se resserre (**84** contre **78**) sans s'inverser. Le classement ne s'inverse que si l'**hébergement UE de toute la chaîne** devient une **exigence bloquante**.
 
 ---
 
 ## 4. Recommandation pour la Petite Maison de l'Épouvante
 
-### Recommandation : GitHub Actions, avec trois conditions
+### Recommandation : GitHub Actions pour la CI, avec trois conditions
 
 **Pourquoi, dans ce contexte précis :**
-- L'équipe (1 architecte, 2 alternants, un DevOps à recruter d'après US-02.3) **ne peut pas absorber l'exploitation d'un serveur Jenkins** en plus du développement de la plateforme (contrainte C-11).
-- Les démos montrent qu'à **scénario identique**, GitHub Actions offre **les mêmes quality gates** pour un coût de mise en place et de maintenance bien plus faible.
-- Les runners éphémères et les jetons éphémères offrent une **sécurité par défaut** supérieure à celle d'un Jenkins que l'équipe devrait durcir seule.
+- L'équipe (1 architecte, 2 alternants, un DevOps à recruter d'après US-02.3) **ne peut pas absorber l'exploitation de Jenkins** en plus du développement de la plateforme (contrainte C-11).
+- À **scénario identique**, GitHub Actions offre **les mêmes quality gates** pour un coût de mise en place et de maintenance bien plus faible.
 
-**Conditions pour respecter les contraintes du projet :**
-1. **Souveraineté (C-04) :** aucune donnée de production ni secret de production dans la CI. Les **déploiements vers l'hébergement européen** passent par un **runner auto-hébergé dans l'UE** (un seul runner, limité au job de déploiement). Évaluer l'offre GitHub Enterprise avec résidence des données dans l'UE si le budget le permet.
+**Conditions :**
+1. **Déploiement en GitOps (C-03, C-04) :** la démo montre que la vraie valeur de la seconde chaîne est **Argo CD**, pas Jenkins. Dès que le cluster managé européen est en place, le déploiement est confié à **Argo CD, installé dans ce cluster** : GitHub Actions publie les images, Argo CD les déploie. GitHub ne détient alors **aucun accès** au cluster de production, et tout écart avec Git est corrigé.
 2. **Chaîne d'approvisionnement (C-03) :** actions tierces **figées par SHA**, liste d'actions autorisées, Dependabot activé sur les workflows.
-3. **Réversibilité :** les étapes restent des **commandes standards** (conteneurs, scripts comme `infra/ci/smoke-test.sh`), pour pouvoir migrer vers une autre CI sans réécrire la logique. La démo l'a prouvé : le même scénario tourne sur les deux outils.
+3. **Réversibilité :** les étapes restent des **scripts npm standards** (`package.json`), pour pouvoir changer de CI sans réécrire la logique. La démo l'a prouvé : le même scénario tourne sur les deux chaînes.
 
-### Quand Jenkins redeviendrait le bon choix
+### Quand Jenkins + Argo CD redeviendrait le bon choix
 
-Cette recommandation **n'est pas universelle**. Jenkins (ou une forge auto-hébergée comme GitLab self-managed) serait préférable si :
+Cette recommandation **n'est pas universelle**. La chaîne entièrement auto-hébergée serait préférable si :
 - l'hébergement **UE de toute la chaîne** devient une **obligation** (contrat, client public, données sensibles dans les tests) ;
-- l'équipe DevOps grandit et peut **exploiter le serveur de façon professionnelle** ;
+- l'équipe DevOps grandit et peut **exploiter les deux outils de façon professionnelle** ;
 - des besoins spécifiques apparaissent : pipelines très longs (vidéo Evil Ed en V2), matériel particulier, exécution hors réseau.
 
-> **Message pour la soutenance :** *« Les deux outils savent faire le travail : nous l'avons démontré sur le même scénario. Pour une petite équipe qui doit livrer vite et en sécurité, nous choisissons de ne pas exploiter notre propre serveur de CI, et nous gardons la porte ouverte grâce à des étapes portables. »*
+> **Message pour la soutenance :** *« Les deux chaînes savent faire le travail : nous l'avons démontré sur le même scénario. Pour l'intégration continue, une petite équipe gagne à ne pas exploiter son propre serveur : GitHub Actions. Pour le déploiement, Argo CD nous a convaincus : la production ne dépend plus d'un pipeline qui détient ses accès, elle se compare en permanence à Git et se corrige seule. Nous retenons donc GitHub Actions pour la CI, et Argo CD pour le déploiement dès que le cluster européen est en place. »*
 
 ---
 
-[← Démonstration du second outil : Jenkins](demo-jenkins.md) · [Sommaire](../README.md) · [Branches, environnements et chaîne de livraison (dev → accp → prod) →](branches-et-environnements.md)
+[← Démonstration du second outil : Jenkins + Argo CD](demo-jenkins-argocd.md) · [Sommaire](../README.md) · [Branches, environnements et chaîne de livraison (dev → accp → prod) →](branches-et-environnements.md)
