@@ -10,10 +10,12 @@
 #   mise-en-production.yml  déclenchement manuel de la mise en production (approbateurs)
 #
 # Branches et environnements :
-#   feature/* → PR vers dev : contrôles + images + test de bout en bout (aucune publication, aucun déploiement)
-#   dev  (par défaut) : intégration continue : images v-<version> publiées sur GHCR, AUCUN déploiement
-#   accp (recette)    : MÊMES images (pas de reconstruction), déployées en recette, étiquetées accp-<version>
-#   prod (production) : contrôle de la version recettée ; la mise en production passe par mise-en-production.yml
+#   feature/* → PR vers dev, et dev (par défaut) : intégration continue UNIQUEMENT : contrôles, build des
+#                       images, scan, test de bout en bout. Aucune publication, aucun déploiement
+#   accp (recette)    : images construites UNE fois et publiées sur GHCR (v-<version>), déployées en recette,
+#                       étiquetées accp-<version> si la recette réussit
+#   prod (production) : MÊMES images (pas de reconstruction), contrôle de la version recettée ;
+#                       la mise en production passe par mise-en-production.yml
 name: CI/CD boutique
 
 on:
@@ -45,7 +47,7 @@ jobs:
       contents: read
       packages: write
     with:
-      publier: ${{ github.event_name == 'push' }}
+      publier: ${{ github.event_name == 'push' && (github.ref_name == 'accp' || github.ref_name == 'prod') }}
       promotion: ${{ github.ref_name == 'accp' || github.ref_name == 'prod' }}
 
   recette:

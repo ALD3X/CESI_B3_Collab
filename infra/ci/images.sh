@@ -1,10 +1,10 @@
 #!/bin/sh
 # Gestion des images entre environnements, commune aux deux pipelines.
-# Principe « construire une fois, déployer partout » : les images sont construites UNE fois (branche dev),
+# Principe « construire une fois, déployer partout » : les images sont publiées UNE fois (branche accp),
 # identifiées par la VERSION de leurs sources (empreinte Git de apps/, infra/kong, infra/postgres et des
 # manifestes npm du monorepo), puis promues. À lancer depuis n'importe où : le script se place à la racine.
 #
-#   sh infra/ci/images.sh version              → affiche la version (identique sur dev, accp et prod pour un même code)
+#   sh infra/ci/images.sh version              → affiche la version (identique sur toutes les branches pour un même code)
 #   sh infra/ci/images.sh present [ETIQUETTE]  → code 0 si les 9 images portent cette étiquette dans le registre
 #   sh infra/ci/images.sh etiqueter ETIQUETTE  → ajoute ETIQUETTE aux images de la version courante et les pousse
 #

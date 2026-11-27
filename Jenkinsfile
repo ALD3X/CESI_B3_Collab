@@ -3,9 +3,9 @@
 // Monorepo turbo : toutes les commandes partent de la racine du dépôt (apps/, infra/, tools/).
 //
 // Branches et environnements :
-//   feature/* : contrôles qualité + images + test de bout en bout (aucun déploiement)
-//   dev       : intégration continue : images construites UNE fois (v-<version>) et publiées, AUCUN déploiement
-//   accp      : MÊMES images promues (pas de reconstruction), déployées en recette (Kubernetes), recette validée
+//   feature/*, dev : intégration continue UNIQUEMENT (contrôles, images, scan, test de bout en bout),
+//                    aucune publication, aucun déploiement
+//   accp      : images construites UNE fois et publiées (v-<version>), déployées en recette (Kubernetes), recette validée
 //   prod      : version recettée uniquement, APPROBATION manuelle, déploiement progressif (Kubernetes),
 //               test de fumée, retour arrière automatique
 pipeline {
@@ -82,7 +82,7 @@ pipeline {
 
         // ---------- 2. Images : construites une seule fois, puis promues ----------
         stage('Images : build, scan, test de bout en bout') {
-            // Sur accp et prod, les images de la version existent déjà (construites sur dev) : on les promeut.
+            // Sur prod (ou sur accp en cas de relance), les images de la version existent déjà : on les reprend.
             when {
                 expression {
                     !(env.BRANCH_NAME in ['accp', 'prod'] &&
@@ -94,14 +94,14 @@ pipeline {
                 sh 'sh infra/ci/scan-images.sh'
                 sh 'sh infra/ci/smoke-test.sh "$PROJET_CI"'
                 script {
-                    if (env.BRANCH_NAME in ['dev', 'accp', 'prod']) {
+                    if (env.BRANCH_NAME in ['accp', 'prod']) {      // dev : intégration continue, aucune publication
                         sh 'docker compose push'
                     }
                 }
             }
         }
 
-        // ---------- 3. Déploiement continu : à partir de la recette (dev ne déploie rien) ----------
+        // ---------- 3. Déploiement continu : à partir de la recette (dev ne publie ni ne déploie rien) ----------
         stage('Recette (accp)') {
             when { branch 'accp' }
             steps {

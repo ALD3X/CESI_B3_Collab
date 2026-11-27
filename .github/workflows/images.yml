@@ -1,6 +1,7 @@
-# 2. Images : construites UNE seule fois (version = empreinte Git de leurs sources), scannées,
-# testées de bout en bout, puis publiées sur GHCR (ghcr.io/<compte>/<dépôt>/boutique-*:v-<version>).
-# Sur accp et prod, les images de la version existent déjà : elles sont promues sans reconstruction.
+# 2. Images : construites (version = empreinte Git de leurs sources), scannées, testées de bout en bout.
+# Sur feature/* et dev : intégration continue, rien n'est publié.
+# Sur accp : publiées UNE fois sur GHCR (ghcr.io/<compte>/<dépôt>/boutique-*:v-<version>).
+# Sur prod : les images de la version existent déjà, elles sont reprises sans reconstruction.
 # Appelé par pipeline.yml.
 name: Images
 
@@ -8,11 +9,11 @@ on:
   workflow_call:
     inputs:
       publier:
-        description: "Publier les images sur GHCR (push sur dev, accp, prod)"
+        description: "Publier les images sur GHCR (push sur accp ou prod)"
         type: boolean
         default: false
       promotion:
-        description: "Réutiliser les images déjà publiées pour cette version (accp, prod)"
+        description: "Réutiliser les images déjà publiées pour cette version, si elles existent (accp, prod)"
         type: boolean
         default: false
     outputs:
@@ -52,7 +53,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Images déjà publiées pour cette version ? (promotion sur accp et prod)
+      - name: Images déjà publiées pour cette version ? (reprise sans reconstruction)
         id: present
         if: inputs.promotion
         run: |
