@@ -1,0 +1,48 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: ${SERVICE_NOM:expedition}
+  main:
+    banner-mode: "off"
+  rabbitmq:
+    host: ${RABBITMQ_HOTE:rabbitmq}
+    username: ${RABBITMQ_UTILISATEUR:demo}
+    password: ${RABBITMQ_MOT_DE_PASSE:demo}
+  cloud:
+    function:
+      definition: commandePayee
+    stream:
+      default-binder: ${BUS:rabbit}
+      bindings:
+        commandePayee-in-0:
+          destination: commandes
+          group: ${GROUPE:expedition}
+          consumer:
+            max-attempts: 3
+            back-off-initial-interval: 200
+      rabbit:
+        bindings:
+          commandePayee-in-0:
+            consumer:
+              auto-bind-dlq: true
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:kafka:29092}
+          auto-create-topics: true
+          min-partition-count: 3
+          replication-factor: 1
+        bindings:
+          commandePayee-in-0:
+            consumer:
+              enable-dlq: true
+management:
+  health:
+    rabbit:
+      enabled: false
+  endpoint:
+    health:
+      probes:
+        enabled: true
+boutique:
+  service: ${SERVICE_NOM:expedition}
