@@ -36,7 +36,7 @@ jobs:
             *" ${{ github.actor }} "*) echo "Mise en production approuvée par ${{ github.actor }}." >> "$GITHUB_STEP_SUMMARY" ;;
             *) echo "::error::${{ github.actor }} ne fait pas partie des approbateurs de la production ($approbateurs)"; exit 1 ;;
           esac
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Version de la branche prod
         id: version
         run: echo "version=$(npm run -s images:version)" >> "$GITHUB_OUTPUT"
@@ -70,7 +70,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Tag livraison-<date>-<version>
         run: |
           tag="livraison-$(date -u +%Y%m%d-%H%M)-${{ needs.approbation.outputs.version }}"

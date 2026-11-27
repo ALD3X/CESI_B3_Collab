@@ -34,7 +34,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Version du code et registre
         id: version
         run: |
@@ -43,7 +43,7 @@ jobs:
           echo "REGISTRE=ghcr.io/${GITHUB_REPOSITORY,,}/" >> "$GITHUB_ENV"
           echo "TAG=v-$v" >> "$GITHUB_ENV"
           echo "### Version v-$v (branche ${GITHUB_REF_NAME})" >> "$GITHUB_STEP_SUMMARY"
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         if: inputs.publier || inputs.promotion
         with:
           registry: ghcr.io
