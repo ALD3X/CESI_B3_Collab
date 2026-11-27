@@ -1,0 +1,28 @@
+{
+  "bus": "rabbit",
+  "spring": {
+    "latence_ajoutee_p50_ms": 1.71,
+    "latence_ajoutee_p95_ms": 0.87,
+    "memoire_mio": 265,
+    "image_mio": 192,
+    "demarrage_s": 5.91,
+    "lignes_a_maintenir": 195,
+    "conteneurs": 2
+  },
+  "kong": {
+    "latence_ajoutee_p50_ms": -0.7,
+    "latence_ajoutee_p95_ms": -2.34,
+    "memoire_mio": 186,
+    "image_mio": 115,
+    "demarrage_s": 5.32,
+    "lignes_a_maintenir": 53,
+    "conteneurs": 1
+  },
+  "bus_mesures": {
+    "commande_vers_notification_p50_ms": 27.9,
+    "commande_vers_notification_p95_ms": 49.5,
+    "notifications_recues": "40/40",
+    "memoire_broker_mio": 147,
+    "image_broker_mio": 109
+  }
+}
