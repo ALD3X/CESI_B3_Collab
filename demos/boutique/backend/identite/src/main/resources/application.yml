@@ -1,0 +1,18 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: identite
+  main:
+    banner-mode: "off"
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true   # /actuator/health/liveness et /readiness (sondes Kubernetes)
+boutique:
+  jwt:
+    secret: ${JWT_SECRET:secret-de-developpement-uniquement-0123456789}
+    emetteur: petite-maison
+  demo:
+    mot-de-passe: ${MOT_DE_PASSE_DEMO:Epouvante2026!}

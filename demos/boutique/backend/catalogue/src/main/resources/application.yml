@@ -1,0 +1,21 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: catalogue
+  main:
+    banner-mode: "off"
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/catalogue}
+    username: ${DB_UTILISATEUR:catalogue}
+    password: ${DB_MOT_DE_PASSE:catalogue}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Démo : schéma créé par Hibernate. En production : migrations versionnées (Flyway) jouées par le pipeline.
+      ddl-auto: update
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
