@@ -69,22 +69,19 @@ Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seu
 | Une chaîne par branche | Orchestrateur `pipeline.yml` : déclencheurs `push` et `pull_request` sur `dev`, `accp`, `prod`, appels conditionnés par `github.ref_name` vers des workflows réutilisables | Job **multi-branches** qui découvre `dev`, `accp`, `prod` et `feature/*` ; étapes conditionnées par `when { branch … }` |
 | Environnements | **Environnements GitHub** `accp`, `production` : historique des déploiements, secrets propres à chaque environnement | Étapes dédiées, cluster cible configuré une fois (`connecter-minikube.sh`) |
 | Cible de déploiement | Avec le secret `KUBECONFIG` de l'environnement : le vrai cluster. Sans : un **cluster éphémère** (kind) créé dans le runner. Dans les deux cas, **le cluster tire les images sur GHCR** grâce à un secret d'accès au registre | Le cluster Kubernetes local (minikube) et le Docker de l'hôte |
-| Approbation de la production | Relecteurs obligatoires de l'environnement `production` (offre Pro ou dépôt public). **Dans notre dépôt privé gratuit**, mesure compensatoire : workflow `mise-en-production.yml`, déclenché à la main et réservé à la liste `APPROBATEURS_PROD` | Étape **`input`** native, réservée à l'utilisateur `admin`, expiration au bout de 30 min |
+| Approbation de la production | Workflow `mise-en-production.yml`, déclenché à la main par un compte de la liste `APPROBATEURS_PROD`, puis **approbation native** d'un relecteur de l'environnement `production` (limité à la branche `prod`) | Étape **`input`** native, réservée à l'utilisateur `admin`, expiration au bout de 30 min |
 | Tests des applications | `turbo run test` (front et backend, cache turbo) | Front : `turbo run test` ; backend : la même commande Maven dans l'image Maven |
-| Pull requests obligatoires sur `accp` et `prod` | Protection de branche indisponible (offre gratuite) : contrôle `origine-pull-request.yml` (le commit doit venir d'une pull request fusionnée, vérifié par l'API GitHub) | Étape « Origine : pull request » (message du commit de fusion) |
+| Pull requests obligatoires sur `accp` et `prod` | **Ruleset** GitHub : push direct, force-push et suppression refusés, pull request obligatoire, pour tous les comptes | Jenkins construit les branches telles qu'elles sont sur GitHub |
 | Promotion des images | `infra/ci/images.sh` (GHCR) | `infra/ci/images.sh` (registre local) |
 | Récupération des images par le cluster | Le cluster tire les images sur GHCR (`imagePullSecret` créé par `infra/ci/deployer.sh`) | Images chargées dans les nœuds minikube (le registre local n'est pas joignable depuis le cluster) |
 
-> **Constat :** dans un dépôt privé de l'offre gratuite, GitHub refuse à la fois la **protection des branches** et l'**approbation** des environnements (« *Upgrade to GitHub Pro or make this repository public* »). Jenkins offre ces contrôles sans licence, mais il faut l'exploiter. Ce point complète la comparaison de [US-04.4](comparaison-et-choix.md).
+> **Constat :** sur un dépôt **privé** de l'offre gratuite, GitHub refuse la protection des branches et l'approbation des environnements (« *Upgrade to GitHub Pro or make this repository public* »). Le dépôt étant **public**, les deux sont actives. Jenkins offre ces contrôles sans condition d'offre, mais il faut l'exploiter. Ce point complète la comparaison de [US-04.4](comparaison-et-choix.md).
 
 ---
 
 ## 5. Règles de travail de l'équipe
 
-1. **Aucun push direct** sur `accp` ni sur `prod` : uniquement par pull request depuis la branche précédente (`dev → accp`, `accp → prod`). La protection de branche n'étant pas disponible dans notre offre GitHub, la règle est appliquée par trois contrôles :
-   - **hook Git local** `tools/git-hooks/pre-push`, installé par `npm install` : le push est refusé sur le poste ;
-   - **GitHub Actions** (`origine-pull-request.yml`) : si le commit de `accp` ou `prod` ne vient pas d'une pull request fusionnée, la chaîne s'arrête avant toute publication ou tout déploiement, et la mise en production est refusée ;
-   - **Jenkins** (étape « Origine : pull request ») : le dernier commit doit être un commit de fusion de pull request.
+1. **Aucun push direct** sur `accp` ni sur `prod` : uniquement par pull request depuis la branche précédente (`dev → accp`, `accp → prod`). Un **ruleset** GitHub l'impose à tous les comptes, administrateur compris : push direct, force-push et suppression de ces branches sont refusés.
 2. Une fonctionnalité = une branche `feature/<ticket>` → PR vers `dev`, relue par un pair, pipeline vert.
 3. La fusion `dev → accp` est décidée par le PO avec l'équipe, en fin de sprint.
 4. La fusion `accp → prod` suit la **validation de la recette** par le PO. La mise en production est déclenchée par un **approbateur** (liste `APPROBATEURS_PROD`).

@@ -74,7 +74,7 @@ Les deux pipelines font les mêmes étapes, avec les mêmes scripts (`infra/ci/`
 | `accp` | Idem, puis **publication des images** et **déploiement en recette** (Kubernetes) |
 | `prod` | Reprise des images recettées, **approbation**, déploiement en production, retour arrière si échec |
 
-`accp` et `prod` n'acceptent que des **pull requests** : un push direct est refusé par le hook Git local (installé par `npm install`), et le pipeline s'arrête s'il passe quand même.
+`accp` et `prod` n'acceptent que des **pull requests** : GitHub refuse tout push direct sur ces branches.
 
 Faire avancer une version :
 
@@ -84,7 +84,7 @@ gh pr create --base prod --head accp --fill && gh pr merge --merge   # vers la p
 ```
 
 Mettre en production :
-- **GitHub Actions** : `gh workflow run mise-en-production.yml --ref prod` (approbateurs uniquement)
+- **GitHub Actions** : `gh workflow run mise-en-production.yml --ref prod`, puis approbation dans l'onglet Actions
 - **Jenkins** : bouton « Mettre en production » sur le build `prod`
 
 Lancer Jenkins en local :
