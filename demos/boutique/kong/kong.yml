@@ -1,0 +1,64 @@
+# Kong Gateway 3.9 (dernière version open source), mode sans base de données.
+# Mêmes règles que la passerelle Spring Cloud Gateway (backend/passerelle/src/main/resources/application.yml).
+_format_version: "3.0"
+
+services:
+  - name: identite
+    url: http://identite:8080
+    routes:
+      - name: identite
+        paths: [/api/identite]
+        strip_path: false
+
+  - name: catalogue
+    url: http://catalogue:8080
+    routes:
+      - name: catalogue
+        paths: [/api/catalogue]
+        strip_path: false
+
+  - name: commandes
+    url: http://commandes:8080
+    # Sans ces réglages, Kong attend 60 s par tentative et réessaie 5 fois (75 s mesurées avant le 502)
+    connect_timeout: 1000
+    read_timeout: 5000
+    write_timeout: 5000
+    retries: 1
+    routes:
+      - name: commandes
+        paths: [/api/commandes]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          second: 10          # fenêtre fixe : 10 requêtes/s par consumer (= application cliente, pas par membre)
+          limit_by: consumer
+          policy: local
+
+  - name: notifications
+    url: http://notifications:8080
+    read_timeout: 3600000      # flux SSE : connexion longue
+    routes:
+      - name: notifications
+        paths: [/api/notifications]
+        strip_path: false
+        response_buffering: false   # sinon les notifications en direct restent bloquées dans le tampon
+
+  - name: expedition
+    url: http://expedition:8080
+    routes:
+      - name: expedition
+        paths: [/api/expedition]
+        strip_path: false
+
+# Le site web signe ses jetons avec l'émetteur (iss) « petite-maison ».
+# Kong OSS ne lit pas les variables d'environnement dans ce fichier : secret en clair (démo uniquement).
+consumers:
+  - username: site-web
+    jwt_secrets:
+      - key: petite-maison
+        algorithm: HS256
+        secret: demo-secret-petite-maison-epouvante-2026!

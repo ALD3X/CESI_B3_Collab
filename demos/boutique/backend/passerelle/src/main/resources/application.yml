@@ -1,0 +1,99 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: passerelle
+  main:
+    banner-mode: "off"
+  data:
+    redis:
+      host: ${REDIS_HOTE:redis}
+      port: 6379
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: 1000     # service arrêté : échec rapide (même réglage que Kong)
+          routes:
+            # Connexion : publique
+            - id: identite
+              uri: http://identite:8080
+              predicates:
+                - Path=/api/identite/**
+
+            # Catalogue : consultation publique
+            - id: catalogue
+              uri: http://catalogue:8080
+              predicates:
+                - Path=/api/catalogue/**
+              filters:
+                # Lecture sans effet de bord : nouvelle tentative si l'instance appelée s'arrête
+                # (constaté : 1 erreur 500 pendant un redémarrage progressif sur Kubernetes)
+                - name: Retry
+                  args:
+                    retries: 2
+                    methods: GET
+
+            # Commandes : jeton obligatoire (voir SecuriteConfig), débit limité par membre, repli en cas de panne
+            - id: commandes
+              uri: http://commandes:8080
+              predicates:
+                - Path=/api/commandes/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    # Seau à jetons par membre (sujet du JWT) : 10 requêtes/s, rafale de 10
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 10
+                - name: CircuitBreaker
+                  args:
+                    name: commandes
+                    fallbackUri: forward:/indisponible
+
+            # Notifications : flux en direct (SSE) et statistiques
+            - id: notifications
+              uri: http://notifications:8080
+              predicates:
+                - Path=/api/notifications/**
+
+            # Expédition : statistiques (démonstration)
+            - id: expedition
+              uri: http://expedition:8080
+              predicates:
+                - Path=/api/expedition/**
+
+# Délai de réponse du coupe-circuit. La valeur par défaut (1 s) a renvoyé un 503 alors que la commande
+# était enregistrée (premier envoi vers Kafka plus lent) : le client risque de commander deux fois.
+resilience4j:
+  timelimiter:
+    instances:
+      commandes:
+        timeout-duration: 5s
+  # Par défaut, le coupe-circuit ouvert laisse le service au repos 60 s : mesuré, le service était revenu
+  # depuis 40 s que la passerelle répondait encore 503. Réglage : réessai au bout de 10 s.
+  circuitbreaker:
+    instances:
+      commandes:
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+
+management:
+  health:
+    redis:
+      enabled: false
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+passerelle:
+  jwt:
+    # Secret partagé de la démo. En production : clés asymétriques (RS256) publiées par le serveur d'identité.
+    secret: ${JWT_SECRET:secret-de-developpement-uniquement-0123456789}
+    emetteur: petite-maison
