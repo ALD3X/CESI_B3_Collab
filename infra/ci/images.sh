@@ -13,7 +13,7 @@ set -eu
 cd "$(dirname "$0")/../.."
 
 # Empreinte des seules sources des images : modifier la doc, les scripts ou les manifestes ne change pas la version
-VERSION=$(git rev-parse HEAD:apps HEAD:infra/kong HEAD:infra/postgres HEAD:package.json HEAD:package-lock.json \n  | sha1sum | cut -c1-12)
+VERSION=$(git rev-parse HEAD:apps HEAD:infra/kong HEAD:infra/postgres HEAD:package.json HEAD:package-lock.json | sha1sum | cut -c1-12)
 R="${REGISTRE:-}"
 IMAGES="front passerelle identite catalogue commandes notifications expedition kong postgres"
 

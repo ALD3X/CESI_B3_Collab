@@ -1,5 +1,5 @@
 # Chaîne CI/CD de la boutique (GitHub Actions) : orchestrateur.
-# Mêmes étapes, mêmes outils et mêmes scripts (infra/ci/*.sh) que le Jenkinsfile.
+# Mêmes étapes et mêmes commandes que le Jenkinsfile : les scripts du package.json (npm run …).
 #
 # Découpage en workflows réutilisables :
 #   pipeline.yml            ce fichier : déclencheurs (push, PR) et enchaînement des étapes

@@ -1,4 +1,5 @@
 # 1. Qualité et sécurité du code : 4 jobs en parallèle, sur toutes les branches et toutes les PR.
+# Chaque contrôle passe par un script du package.json (npm run …), comme sur le poste et dans Jenkins.
 # Appelé par pipeline.yml.
 name: Contrôles qualité et sécurité
 
@@ -8,11 +9,6 @@ on:
 permissions:
   contents: read
 
-env:
-  GITLEAKS_IMAGE: zricethezav/gitleaks:v8.24.3
-  TRIVY_IMAGE: aquasec/trivy:0.65.0
-  SEMGREP_IMAGE: semgrep/semgrep:1.99.0
-
 jobs:
   secrets:
     name: "Secrets (gitleaks)"
@@ -20,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Recherche de secrets dans le code
-        run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" dir /repo --no-banner --redact
+        run: npm run securite:secrets
 
   backend:
     name: "Backend : tests + couverture (Java 25)"
@@ -39,7 +35,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Tests unitaires et d'intégration + seuil de couverture (70 % par service)
-        run: npx turbo run test --filter=@boutique/back
+        run: npm run test:back
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -59,7 +55,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Tests (Vitest) + seuil de couverture (70 %)
-        run: npx turbo run test --filter=@boutique/front
+        run: npm run test:front
 
   sast-sca:
     name: "SAST (Semgrep) + SCA (Trivy)"
@@ -67,11 +63,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: SAST - analyse statique de sécurité (bloquant si sévérité ERROR)
-        run: |
-          docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE" semgrep scan \
-            --config p/java --config p/react --config p/secrets \
-            --severity ERROR --error --metrics off --exclude "**/target" --exclude node_modules .
+        run: npm run securite:sast
       - name: SCA - vulnérabilités des dépendances Maven et npm (bloquant si CRITIQUE corrigeable)
-        run: |
-          docker run --rm -v "$PWD:/src" "$TRIVY_IMAGE" fs --quiet --scanners vuln \
-            --severity CRITICAL --ignore-unfixed --exit-code 1 /src
+        run: npm run securite:sca
