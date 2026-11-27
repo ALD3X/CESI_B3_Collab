@@ -1,9 +1,9 @@
+# Zone publique : le front, seul composant exposé hors du cluster.
 # Zone publique : le front (NGINX non-root), seul composant exposé hors du cluster.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: front
-  namespace: zone-publique
   labels: { app: front, composant: UI }
 spec:
   replicas: 2
@@ -26,8 +26,10 @@ spec:
           image: boutique-front:latest
           imagePullPolicy: IfNotPresent
           env:
-            - { name: PASSERELLE_HOTE, value: "passerelle.zone-applicative:8080" }
-            - { name: PASSERELLE_NOM, value: "Spring Cloud Gateway (Kubernetes)" }
+            - { name: ZONE_APPLICATIVE, valueFrom: { configMapKeyRef: { name: boutique-env, key: ZONE_APPLICATIVE } } }
+            - { name: ENVIRONNEMENT, valueFrom: { configMapKeyRef: { name: boutique-env, key: ENVIRONNEMENT } } }
+            - { name: PASSERELLE_HOTE, value: "passerelle.$(ZONE_APPLICATIVE):8080" }
+            - { name: PASSERELLE_NOM, value: "Spring Cloud Gateway · Kubernetes $(ENVIRONNEMENT)" }
             - { name: BUS, value: "RabbitMQ" }
           ports: [{ containerPort: 8080, name: http }]
           readinessProbe:

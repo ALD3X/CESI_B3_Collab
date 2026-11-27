@@ -1,10 +1,10 @@
+# Zone données : PostgreSQL, RabbitMQ, Redis (services managés dans l'UE en production réelle).
 # Zone données : PostgreSQL (une base par service), RabbitMQ (bus d'événements), Redis (limitation de débit).
 # En production, ces trois composants sont des services managés hébergés dans l'UE (US-08.1).
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: zone-donnees
   labels: { app: postgres }
 spec:
   serviceName: postgres
@@ -48,7 +48,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rabbitmq
-  namespace: zone-donnees
   labels: { app: rabbitmq }
 spec:
   replicas: 1
@@ -91,7 +90,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
-  namespace: zone-donnees
   labels: { app: redis }
 spec:
   replicas: 1
@@ -116,3 +114,15 @@ metadata: { name: redis, namespace: zone-donnees }
 spec:
   selector: { app: redis }
   ports: [{ port: 6379, targetPort: redis }]
+---
+# Données : accessibles uniquement depuis la zone applicative
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: donnees-depuis-zone-applicative
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { zone: applicative } }

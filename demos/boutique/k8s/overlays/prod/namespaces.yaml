@@ -1,0 +1,18 @@
+# Production (2 instances, mise à l'échelle automatique) : un namespace par zone de sécurité
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod-publique
+  labels: { zone: publique, env: prod }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod-applicative
+  labels: { zone: applicative, env: prod }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod-donnees
+  labels: { zone: donnees, env: prod }

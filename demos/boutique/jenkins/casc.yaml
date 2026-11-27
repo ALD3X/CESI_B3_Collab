@@ -16,27 +16,38 @@ unclassified:
   location:
     url: "http://localhost:8090/"
 
+# Job multi-branches : une chaîne par branche (dev, accp, prod, feature/*), détectée automatiquement
 jobs:
   - script: >
-      pipelineJob('petite-maison-boutique') {
-        description('Pipeline CI/CD de la boutique (front + microservices), scénario de référence US-04.1')
-        properties {
-          pipelineTriggers {
-            triggers {
-              pollSCM { scmpoll_spec('* * * * *') }
+      multibranchPipelineJob('petite-maison-boutique') {
+        displayName('Boutique : dev → accp → prod')
+        description('Pipeline CI/CD de la boutique. dev : build + déploiement dev · accp : promotion + recette · prod : approbation + mise en production')
+        branchSources {
+          branchSource {
+            source {
+              git {
+                id('boutique')
+                remote('${REPO_URL:-file:///source}')
+                traits {
+                  gitBranchDiscovery()
+                  headWildcardFilter {
+                    includes('dev accp prod feature/*')
+                    excludes('')
+                  }
+                }
+              }
             }
           }
         }
-        definition {
-          cpsScm {
-            scm {
-              git {
-                remote { url('${REPO_URL:-file:///source}') }
-                branch('*/main')
-              }
-            }
-            scriptPath('Jenkinsfile')
-            lightweight(false)
+        factory {
+          workflowBranchProjectFactory {
+            scriptPath('demos/boutique/Jenkinsfile')
           }
+        }
+        triggers {
+          periodicFolderTrigger { interval('1m') }
+        }
+        orphanedItemStrategy {
+          discardOldItems { numToKeep(5) }
         }
       }

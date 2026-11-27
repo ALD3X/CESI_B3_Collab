@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: prod-donnees
+resources:
+  - ../../../base/donnees
+patches:
+  - target: { kind: NetworkPolicy, name: donnees-depuis-zone-applicative }
+    patch: |-
+      - { op: add, path: /spec/ingress/0/from/0/namespaceSelector/matchLabels/env, value: prod }

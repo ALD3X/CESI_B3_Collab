@@ -1,14 +1,19 @@
 """Parcours client de bout en bout (exécuté dans le réseau de la boutique par ci/smoke-test.sh)."""
 
 import json
+import os
 import sys
 import time
 import urllib.error
 import urllib.request
 
-FRONT = "http://front:8080"          # front → passerelle Spring Cloud Gateway
-KONG = "http://kong:8000"            # seconde passerelle
+# Adresses selon l'environnement (Docker Compose par défaut ; Kubernetes : FRONT=http://front, KONG vide)
+FRONT = os.environ.get("FRONT", "http://front:8080")   # front → passerelle Spring Cloud Gateway
+KONG = os.environ.get("KONG", "http://kong:8000")      # seconde passerelle (absente sur Kubernetes)
 echecs = 0
+
+
+print(f"Test de fumée : {FRONT}", flush=True)
 
 
 def appel(url, corps=None, jeton=None):
@@ -52,7 +57,8 @@ for service in ("notifications", "expedition"):
         time.sleep(0.5)
     verifier(f"événement « commande payée » reçu par {service} (bus)", recu)
 
-verifier("mes commandes via Kong", appel(KONG + "/api/commandes", jeton=jeton)[0] == 200)
+if KONG:
+    verifier("mes commandes via Kong", appel(KONG + "/api/commandes", jeton=jeton)[0] == 200)
 
 print("\nTest de bout en bout : " + ("OK" if echecs == 0 else f"{echecs} échec(s)"))
 sys.exit(1 if echecs else 0)

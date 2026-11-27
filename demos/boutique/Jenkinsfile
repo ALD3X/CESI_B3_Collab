@@ -1,7 +1,12 @@
-// Pipeline CI/CD de la boutique — Jenkins (scénario de référence US-04.1)
-// Étapes identiques à .github/workflows/ci.yml, mêmes outils et mêmes scripts (ci/*.sh) :
-//   secrets ‖ backend (tests + couverture) ‖ front (tests + couverture) ‖ SAST + SCA
-//   → build des 9 images → scan des images → test de bout en bout → publication (main)
+// Pipeline CI/CD de la boutique — Jenkins (job multi-branches)
+// Mêmes étapes, mêmes outils et mêmes scripts (ci/*.sh) que .github/workflows/boutique.yml.
+//
+// Branches et environnements :
+//   feature/* : contrôles qualité + images + test de bout en bout (aucun déploiement)
+//   dev       : images construites UNE fois (v-<version>), publiées, déployées en dev (Docker Compose)
+//   accp      : MÊMES images promues (pas de reconstruction), déployées en recette (Kubernetes), recette validée
+//   prod      : version recettée uniquement, APPROBATION manuelle, déploiement progressif (Kubernetes),
+//               test de fumée, retour arrière automatique
 pipeline {
     agent any
 
@@ -9,58 +14,68 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '20'))
-        timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
     }
 
     environment {
-        TRIVY_IMAGE = 'aquasec/trivy:0.65.0'
-        // Registre local lancé avec Jenkins (équivalent de GHCR côté GitHub)
-        REGISTRE    = 'localhost:5000/'
-        TAG         = "build-${env.BUILD_NUMBER}"
+        APP            = 'demos/boutique'
+        TRIVY_IMAGE    = 'aquasec/trivy:0.65.0'
+        REGISTRE       = 'localhost:5000/'          // registre local (équivalent de GHCR)
+        CHARGER_IMAGES = 'minikube:boutique'        // les images sont chargées dans les nœuds du cluster local
+        KUBECONFIG     = '/var/jenkins_home/.kube/config'
     }
 
     stages {
-        // ---------- 1. Qualité et sécurité du code (4 branches en parallèle) ----------
+        stage('Version') {
+            steps {
+                dir(env.APP) {
+                    script {
+                        env.VERSION = sh(script: 'sh ci/images.sh version', returnStdout: true).trim()
+                        env.TAG = "v-${env.VERSION}"
+                        env.PROJET_CI = "boutique-ci-${env.BRANCH_NAME.replaceAll('[^a-zA-Z0-9]', '').toLowerCase()}-${env.BUILD_NUMBER}"
+                        currentBuild.description = "${env.BRANCH_NAME} · ${env.TAG}"
+                    }
+                }
+            }
+        }
+
+        // ---------- 1. Qualité et sécurité du code (toutes les branches) ----------
         stage('Qualité et sécurité du code') {
             parallel {
                 stage('Secrets (gitleaks)') {
                     agent { docker { image 'zricethezav/gitleaks:v8.24.3'; args '--entrypoint='; reuseNode true } }
-                    steps {
-                        sh 'gitleaks dir . --no-banner --redact'
-                    }
+                    steps { dir(env.APP) { sh 'gitleaks dir . --no-banner --redact' } }
                 }
                 stage('Backend : tests + couverture') {
                     agent { docker { image 'maven:3.9-eclipse-temurin-21'; args '-v boutique-m2:/root/.m2'; reuseNode true } }
-                    steps {
-                        sh 'mvn -B -ntp -f backend/pom.xml verify'
-                    }
+                    steps { dir(env.APP) { sh 'mvn -B -ntp -f backend/pom.xml verify' } }
                     post {
-                        always { junit allowEmptyResults: true, testResults: 'backend/*/target/surefire-reports/*.xml' }
+                        always { junit allowEmptyResults: true, testResults: 'demos/boutique/backend/*/target/surefire-reports/*.xml' }
                     }
                 }
                 stage('Front : tests + couverture') {
                     agent { docker { image 'node:20-alpine'; reuseNode true } }
-                    steps {
-                        dir('front') {
-                            sh 'npm ci && npm test'
-                        }
-                    }
+                    steps { dir("${env.APP}/front") { sh 'npm ci && npm test' } }
                 }
                 stage('SAST (Semgrep) + SCA (Trivy)') {
                     stages {
                         stage('SAST') {
                             agent { docker { image 'semgrep/semgrep:1.99.0'; reuseNode true } }
                             steps {
-                                sh '''semgrep scan --config p/java --config p/react --config p/secrets \
-                                      --severity ERROR --error --metrics off --exclude "**/target" \
-                                      --exclude front/node_modules .'''
+                                dir(env.APP) {
+                                    sh '''semgrep scan --config p/java --config p/react --config p/secrets \
+                                          --severity ERROR --error --metrics off --exclude "**/target" \
+                                          --exclude front/node_modules .'''
+                                }
                             }
                         }
                         stage('SCA') {
                             agent { docker { image 'aquasec/trivy:0.65.0'; args '--entrypoint='; reuseNode true } }
                             steps {
-                                sh '''trivy fs --quiet --scanners vuln --severity CRITICAL --ignore-unfixed \
-                                      --skip-dirs front/node_modules --exit-code 1 .'''
+                                dir(env.APP) {
+                                    sh '''trivy fs --quiet --scanners vuln --severity CRITICAL --ignore-unfixed \
+                                          --skip-dirs front/node_modules --exit-code 1 .'''
+                                }
                             }
                         }
                     }
@@ -68,39 +83,84 @@ pipeline {
             }
         }
 
-        // ---------- 2. Images, scan, test de bout en bout, publication ----------
-        stage('Build des 9 images') {
+        // ---------- 2. Images : construites une seule fois, puis promues ----------
+        stage('Images : build, scan, test de bout en bout') {
+            // Sur accp et prod, les images de la version existent déjà (construites sur dev) : on les promeut.
+            when {
+                expression {
+                    !(env.BRANCH_NAME in ['accp', 'prod'] &&
+                      sh(script: "cd ${env.APP} && sh ci/images.sh present", returnStatus: true) == 0)
+                }
+            }
             steps {
-                sh 'docker compose build'
+                dir(env.APP) {
+                    sh 'docker compose build'
+                    sh 'sh ci/scan-images.sh'
+                    sh 'sh ci/smoke-test.sh "$PROJET_CI"'
+                    script {
+                        if (env.BRANCH_NAME in ['dev', 'accp', 'prod']) {
+                            sh 'docker compose push'
+                        }
+                    }
+                }
             }
         }
 
-        stage('Scan des images (trivy)') {
+        // ---------- 3. Déploiements ----------
+        stage('Déploiement dev') {
+            when { branch 'dev' }
             steps {
-                sh 'sh ci/scan-images.sh'
+                dir(env.APP) {
+                    sh 'sh ci/deployer.sh dev'
+                    sh 'sh ci/images.sh etiqueter dev'
+                }
             }
         }
 
-        stage('Test de bout en bout') {
+        stage('Recette (accp)') {
+            when { branch 'accp' }
             steps {
-                sh 'sh ci/smoke-test.sh "boutique-ci-${BUILD_NUMBER}"'
+                dir(env.APP) {
+                    sh 'sh ci/deployer.sh accp'
+                    sh 'sh ci/images.sh etiqueter accp'
+                    sh 'sh ci/images.sh etiqueter "accp-$VERSION"'
+                }
             }
         }
 
-        stage('Publication (main uniquement)') {
-            when { expression { env.GIT_BRANCH?.endsWith('main') } }
-            steps {
-                sh 'docker compose push'
-                echo "Images publiées : ${env.REGISTRE}boutique-*:${env.TAG}"
+        stage('Production') {
+            when { branch 'prod' }
+            stages {
+                stage('Contrôle : version recettée') {
+                    steps { dir(env.APP) { sh 'sh ci/images.sh present "accp-$VERSION"' } }
+                }
+                stage('Approbation') {
+                    steps {
+                        timeout(time: 30, unit: 'MINUTES') {
+                            input message: "Mettre en production la version ${env.VERSION} (recette validée) ?",
+                                  ok: 'Mettre en production', submitter: 'admin'
+                        }
+                    }
+                }
+                stage('Déploiement prod') {
+                    steps {
+                        dir(env.APP) {
+                            sh 'sh ci/deployer.sh prod'      // retour arrière automatique en cas d'échec
+                            sh 'sh ci/images.sh etiqueter prod'
+                            sh 'sh ci/images.sh etiqueter "prod-$VERSION"'
+                        }
+                    }
+                }
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: 'backend/*/target/site/jacoco/**, front/coverage/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'demos/boutique/backend/*/target/site/jacoco/**, demos/boutique/front/coverage/**',
+                             allowEmptyArchive: true
         }
-        success { echo 'Pipeline VERT : livrable prêt.' }
+        success { echo "Pipeline VERT (${env.BRANCH_NAME}, ${env.TAG})." }
         failure { echo 'Pipeline ROUGE : une quality gate a bloqué la livraison.' }
     }
 }

@@ -1,0 +1,18 @@
+# Recette (iso-production, 1 instance par service) : un namespace par zone de sécurité
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: accp-publique
+  labels: { zone: publique, env: accp }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: accp-applicative
+  labels: { zone: applicative, env: accp }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: accp-donnees
+  labels: { zone: donnees, env: accp }

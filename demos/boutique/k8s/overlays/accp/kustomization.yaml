@@ -1,0 +1,8 @@
+# Environnement accp : Recette (iso-production, 1 instance par service)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespaces.yaml
+  - donnees
+  - applicative
+  - publique

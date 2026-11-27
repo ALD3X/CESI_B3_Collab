@@ -1,11 +1,13 @@
 #!/usr/bin/env sh
 # Démo EPIC 06 (US-06.1) — La boutique sur Kubernetes : architecture interne observée en direct.
-# Usage : sh k8s/demo.sh preparer | composants | deployer | ouvrir | auto-reparation | mise-a-jour | cloisonnement | nettoyer
+# Usage : [ENV=prod|accp] sh k8s/demo.sh preparer | composants | deployer | ouvrir | auto-reparation | mise-a-jour | cloisonnement | nettoyer
+# ENV (prod par défaut) choisit l'environnement montré : namespaces prod-* ou accp-*.
 set -e
 PROFIL=boutique
+ENV="${ENV:-prod}"
 K="kubectl --context $PROFIL"
 ICI=$(cd "$(dirname "$0")" && pwd)
-APP="$K -n zone-applicative"
+APP="$K -n $ENV-applicative"
 IMAGES="boutique-front boutique-passerelle boutique-identite boutique-catalogue boutique-commandes \
 boutique-notifications boutique-expedition boutique-postgres"
 
@@ -34,22 +36,17 @@ case "${1:-}" in
     $K cluster-info
     ;;
   deployer)
-    etape "État souhaité déclaré dans des fichiers versionnés (kubectl apply → API server → etcd)"
-    $K apply -f "$ICI/"
-    etape "Le scheduler place les pods, le kubelet de chaque nœud démarre les conteneurs"
-    $K -n zone-donnees rollout status statefulset/postgres --timeout=180s
-    $K -n zone-donnees rollout status deploy/rabbitmq --timeout=180s
-    for d in passerelle identite catalogue commandes notifications expedition; do
-      $APP rollout status "deploy/$d" --timeout=300s
-    done
-    $K -n zone-publique rollout status deploy/front --timeout=120s
-    etape "La boutique : 3 zones, chaque service redondé ou relancé automatiquement"
+    etape "État souhaité de l'environnement $ENV (Kustomize) : kubectl apply → API server → etcd"
+    etape "Le scheduler place les pods, le kubelet de chaque nœud démarre les conteneurs, puis test de fumée"
+    kubectl config use-context "$PROFIL" >/dev/null
+    (cd "$ICI/.." && TAG=latest CHARGER_IMAGES=minikube:$PROFIL sh ci/deployer.sh "$ENV")
+    etape "La boutique en $ENV : 3 zones, chaque service redondé ou relancé automatiquement"
     $K get pods -A -l 'app' -o custom-columns=ZONE:.metadata.namespace,POD:.metadata.name,NOEUD:.spec.nodeName,ETAT:.status.phase \
-      | grep -E "ZONE|zone-"
+      | grep -E "ZONE|$ENV-"
     ;;
   ouvrir)
     etape "Boutique servie par Kubernetes : http://localhost:3001  (Ctrl+C pour arrêter)"
-    $K -n zone-publique port-forward svc/front 3001:80
+    $K -n "$ENV-publique" port-forward svc/front 3001:80
     ;;
   auto-reparation)
     POD=$($APP get pods -l app=catalogue -o jsonpath='{.items[0].metadata.name}')
@@ -77,18 +74,21 @@ case "${1:-}" in
     $APP run sonde-applicative $SONDE -s -m 5 -o /dev/null -w "code HTTP : %{http_code}\n" \
       http://catalogue:8080/api/catalogue/produits/1 || true
     etape "Depuis la zone publique vers la passerelle : autorisé (chemin normal du front)"
-    $K -n zone-publique run sonde-publique $SONDE -s -m 5 -o /dev/null -w "code HTTP : %{http_code}\n" \
-      http://passerelle.zone-applicative:8080/api/catalogue/produits/1 || true
+    $K -n "$ENV-publique" run sonde-publique $SONDE -s -m 5 -o /dev/null -w "code HTTP : %{http_code}\n" \
+      http://passerelle.$ENV-applicative:8080/api/catalogue/produits/1 || true
     etape "Depuis la zone publique DIRECTEMENT vers le catalogue : bloqué (contournement de la passerelle)"
-    $K -n zone-publique run sonde-contournement $SONDE -s -m 5 -o /dev/null \
+    $K -n "$ENV-publique" run sonde-contournement $SONDE -s -m 5 -o /dev/null \
       -w "code HTTP : %{http_code} (000 = aucune réponse)\n" \
-      http://catalogue.zone-applicative:8080/api/catalogue/produits/1 || true
+      http://catalogue.$ENV-applicative:8080/api/catalogue/produits/1 || true
     etape "Depuis la zone publique vers la base de données : bloqué"
-    $K -n zone-publique run sonde-donnees $SONDE -s -m 5 -o /dev/null \
-      -w "code : %{http_code} (000 = aucune réponse)\n" telnet://postgres.zone-donnees:5432 || true
+    $K -n "$ENV-publique" run sonde-donnees $SONDE -s -m 5 -o /dev/null \
+      -w "code : %{http_code} (000 = aucune réponse)\n" telnet://postgres.$ENV-donnees:5432 || true
+    etape "Depuis la RECETTE vers la base de PRODUCTION : bloqué (environnements isolés)"
+    $K -n accp-applicative run sonde-inter-env $SONDE -s -m 5 -o /dev/null \
+      -w "code : %{http_code} (000 = aucune réponse)\n" telnet://postgres.prod-donnees:5432 || true
     ;;
   nettoyer)
-    $K delete -f "$ICI/" --ignore-not-found
+    $K delete ns "$ENV-publique" "$ENV-applicative" "$ENV-donnees" --ignore-not-found
     minikube stop -p "$PROFIL"
     ;;
   *)
