@@ -74,11 +74,13 @@ Les deux pipelines font les mêmes étapes, avec les mêmes scripts (`infra/ci/`
 | `accp` | Idem, puis **publication des images** et **déploiement en recette** (Kubernetes) |
 | `prod` | Reprise des images recettées, **approbation**, déploiement en production, retour arrière si échec |
 
+`accp` et `prod` n'acceptent que des **pull requests** : un push direct est refusé par le hook Git local (installé par `npm install`), et le pipeline s'arrête s'il passe quand même.
+
 Faire avancer une version :
 
 ```bash
-git switch accp && git merge --ff-only dev && git push    # vers la recette
-git switch prod && git merge --ff-only accp && git push   # vers la production
+gh pr create --base accp --head dev --fill && gh pr merge --merge    # vers la recette
+gh pr create --base prod --head accp --fill && gh pr merge --merge   # vers la production
 ```
 
 Mettre en production :

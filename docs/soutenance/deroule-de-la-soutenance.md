@@ -99,7 +99,7 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 | 0:20 | Onglet *Actions* : run `dev` vert **lancé avant la soutenance** | « 4 contrôles en parallèle, puis les 9 images : build, scan, test de bout en bout. Sur dev, rien n'est publié. » |
 | 0:50 | Run `accp` | « En recette, les images sont publiées une seule fois sur le registre GitHub, et le cluster les tire lui-même. La production reprendra ces mêmes images, sans reconstruction : elle exécutera exactement ce qui a été testé. » |
 | 1:20 | Onglet *Environments*, run `prod` | « Seule une version recettée peut partir en production, et uniquement par le workflow de mise en production, réservé aux approbateurs. » |
-| 1:45 | — | « Limite : dans notre offre gratuite, GitHub refuse la protection de branche et l'approbation native. Nous l'avons compensée par une liste d'approbateurs. » |
+| 1:45 | — | « Limite : dans notre offre gratuite, GitHub refuse la protection de branche et l'approbation native. Nous les avons compensées : recette et production n'acceptent que des pull requests, contrôlées par le pipeline, et la mise en production est réservée à une liste d'approbateurs. » |
 
 ### Démo 2 : Jenkins (B, 2:00)
 

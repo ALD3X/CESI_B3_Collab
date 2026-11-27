@@ -71,6 +71,7 @@ Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seu
 | Cible de déploiement | Avec le secret `KUBECONFIG` de l'environnement : le vrai cluster. Sans : un **cluster éphémère** (kind) créé dans le runner. Dans les deux cas, **le cluster tire les images sur GHCR** grâce à un secret d'accès au registre | Le cluster Kubernetes local (minikube) et le Docker de l'hôte |
 | Approbation de la production | Relecteurs obligatoires de l'environnement `production` (offre Pro ou dépôt public). **Dans notre dépôt privé gratuit**, mesure compensatoire : workflow `mise-en-production.yml`, déclenché à la main et réservé à la liste `APPROBATEURS_PROD` | Étape **`input`** native, réservée à l'utilisateur `admin`, expiration au bout de 30 min |
 | Tests des applications | `turbo run test` (front et backend, cache turbo) | Front : `turbo run test` ; backend : la même commande Maven dans l'image Maven |
+| Pull requests obligatoires sur `accp` et `prod` | Protection de branche indisponible (offre gratuite) : contrôle `origine-pull-request.yml` (le commit doit venir d'une pull request fusionnée, vérifié par l'API GitHub) | Étape « Origine : pull request » (message du commit de fusion) |
 | Promotion des images | `infra/ci/images.sh` (GHCR) | `infra/ci/images.sh` (registre local) |
 | Récupération des images par le cluster | Le cluster tire les images sur GHCR (`imagePullSecret` créé par `infra/ci/deployer.sh`) | Images chargées dans les nœuds minikube (le registre local n'est pas joignable depuis le cluster) |
 
@@ -80,7 +81,10 @@ Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seu
 
 ## 5. Règles de travail de l'équipe
 
-1. **On ne pousse jamais directement** sur `accp` ni sur `prod` : uniquement par PR depuis la branche précédente. *(Règle d'équipe, car la protection de branche n'est pas disponible dans notre offre GitHub.)*
+1. **Aucun push direct** sur `accp` ni sur `prod` : uniquement par pull request depuis la branche précédente (`dev → accp`, `accp → prod`). La protection de branche n'étant pas disponible dans notre offre GitHub, la règle est appliquée par trois contrôles :
+   - **hook Git local** `tools/git-hooks/pre-push`, installé par `npm install` : le push est refusé sur le poste ;
+   - **GitHub Actions** (`origine-pull-request.yml`) : si le commit de `accp` ou `prod` ne vient pas d'une pull request fusionnée, la chaîne s'arrête avant toute publication ou tout déploiement, et la mise en production est refusée ;
+   - **Jenkins** (étape « Origine : pull request ») : le dernier commit doit être un commit de fusion de pull request.
 2. Une fonctionnalité = une branche `feature/<ticket>` → PR vers `dev`, relue par un pair, pipeline vert.
 3. La fusion `dev → accp` est décidée par le PO avec l'équipe, en fin de sprint.
 4. La fusion `accp → prod` suit la **validation de la recette** par le PO. La mise en production est déclenchée par un **approbateur** (liste `APPROBATEURS_PROD`).
