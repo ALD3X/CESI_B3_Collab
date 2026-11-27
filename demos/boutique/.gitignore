@@ -1,0 +1,8 @@
+.etat.json
+build.log
+**/target/
+front/node_modules/
+front/dist/
+front/coverage/
+__pycache__/
+k8s-preparer.log
