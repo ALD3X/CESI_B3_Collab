@@ -1,0 +1,53 @@
+# Configuration de Jenkins par le code (Jenkins Configuration as Code)
+jenkins:
+  systemMessage: "Démo CI/CD — Boutique de La Petite Maison de l'Épouvante (Jenkins auto-hébergé)"
+  numExecutors: 4
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD:-admin}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  location:
+    url: "http://localhost:8090/"
+
+# Job multi-branches : une chaîne par branche (dev, accp, prod, feature/*), détectée automatiquement
+jobs:
+  - script: >
+      multibranchPipelineJob('petite-maison-boutique') {
+        displayName('Boutique : dev → accp → prod')
+        description('Pipeline CI/CD de la boutique. dev : intégration continue (sans publication ni déploiement) · accp : publication + : promotion + recette · prod : approbation + mise en production')
+        branchSources {
+          branchSource {
+            source {
+              git {
+                id('boutique')
+                remote('${REPO_URL:-file:///source}')
+                traits {
+                  gitBranchDiscovery()
+                  headWildcardFilter {
+                    includes('dev accp prod feature/*')
+                    excludes('')
+                  }
+                }
+              }
+            }
+          }
+        }
+        factory {
+          workflowBranchProjectFactory {
+            scriptPath('Jenkinsfile')
+          }
+        }
+        triggers {
+          periodicFolderTrigger { interval('1m') }
+        }
+        orphanedItemStrategy {
+          discardOldItems { numToKeep(5) }
+        }
+      }

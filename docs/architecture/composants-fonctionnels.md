@@ -1,0 +1,173 @@
+# Composants fonctionnels
+
+> **Story :** US-03.1 · **Jira :** [SCRUM-20](https://maalsi25.atlassian.net/browse/SCRUM-20) · **Epic :** EPIC 03, Architecture macroscopique
+> **Responsable :** Membre A · **Binôme :** Membre C
+> **Entrées :** [US-01.1, synthèse du besoin](../cadrage/synthese-du-besoin.md) · [US-02.1, attributs de qualité](../qualite-devsecops/attributs-de-qualite.md)
+
+**But :** découper la plateforme `petitemaisonepouvante.com` en **composants cohérents**, chacun responsable d'un domaine métier, pour couvrir l'ensemble des besoins.
+
+> **Indépendance technologique :** ce découpage ne présuppose **aucun framework, moteur de base de données ou protocole**. Ces choix sont faits dans les EPIC 04 et 05.
+
+---
+
+## 1. Principes de découpage
+
+| Principe | Explication | Attribut de qualité servi |
+|---|---|---|
+| **Un composant = un domaine métier** | Chaque composant regroupe des fonctions qui évoluent ensemble (vente, communauté, contenus…) | Maintenabilité |
+| **Chaque composant possède ses données** | Aucun composant n'accède directement aux données d'un autre : il passe par son interface | Maintenabilité, sécurité |
+| **Isolation des pannes** | Une panne de la recommandation, du chat ou des notifications **ne bloque pas l'achat** | Disponibilité |
+| **Échanges asynchrones pour ce qui n'est pas urgent** | Notifications, recommandations et synchronisations passent par des événements, sans bloquer l'utilisateur | Performance, scalabilité |
+| **Intégrations isolées derrière des adaptateurs** | Le SI existant et les services externes sont accessibles via des composants dédiés, qui traduisent leurs formats | Interopérabilité, maintenabilité |
+| **Granularité raisonnable** | Une quinzaine de composants, regroupables en quelques unités déployables pour une petite équipe (cf. arbitrage US-02.1) | Maintenabilité, coût |
+
+---
+
+## 2. Vue d'ensemble des couches
+
+| Couche | Rôle | Composants |
+|---|---|---|
+| **A. Présentation** | Interfaces utilisées par les personnes | Site client, back-office |
+| **B. Entrée et sécurité** | Point d'accès unique, protection, identité | Protection périphérique, passerelle d'entrée, identité et accès |
+| **C. Services métier** | Logique métier de la plateforme | 13 services (vente, contenus, communauté, personnalisation) |
+| **D. Services transverses** | Capacités partagées par tous | Bus d'événements, stockage de médias, observabilité, secrets |
+| **E. Intégration** | Liens avec le SI existant et les services externes | Connecteur SI, adaptateurs paiement, transport et emailing |
+| **F. Données** | Persistance, propre à chaque composant | Une base logique par service + entrepôt analytique |
+
+---
+
+## 3. Inventaire des composants
+
+### A. Présentation
+
+| ID | Composant | Responsabilité | Utilisateurs |
+|---|---|---|---|
+| **UI-1** | **Site client** (web responsive) | Toute l'interface publique et l'espace authentifié : vitrine, news, catalogue, panier, compte, liseuse, espace communautaire, chat, réglages. Émet les événements de navigation vers SP-2 **si l'utilisateur y a consenti**. **Bilingue FR/EN**, **conforme RGAA** | Internautes, clients, membres de la communauté |
+| **UI-2** | **Back-office** | Interface d'administration : catalogue et prix, commandes, publication éditoriale, publication des numéros du fanzine, modération, gestion des utilisateurs, tableaux de bord | Équipe e-commerce, rédaction, modérateurs, magasins, direction |
+
+### B. Entrée et sécurité
+
+| ID | Composant | Responsabilité |
+|---|---|---|
+| **EN-1** | **Protection et cache périphérique** | Premier rempart face à Internet : filtrage des attaques applicatives et des attaques par saturation, chiffrement des échanges, **mise en cache des contenus publics** (news, images, catalogue) au plus près des internautes |
+| **EN-2** | **Passerelle d'entrée** | Point d'accès unique vers les services : routage des requêtes, vérification du jeton d'identité, limitation du débit par client, journalisation des accès |
+| **EN-3** | **Identité et accès** | Inscription, authentification (MFA pour l'admin, proposée aux clients), sessions, rôles (client, membre, modérateur, admin, magasin), consentements RGPD |
+
+### C. Services métier
+
+#### C1. Vente et logistique
+
+| ID | Composant | Responsabilité | Fonctionnalités |
+|---|---|---|---|
+| **SV-1** | **Catalogue et recherche** | Référentiel des produits (physiques, numéros du fanzine, offres d'abonnement, exclusivités Evil Ed), fiches, catégories, prix, **moteur de recherche**. Émet les événements « recherche effectuée » et « produit consulté » | F-01, F-02, F-03 |
+| **SV-2** | **Panier et commandes** | Panier, tunnel de commande, cycle de vie de la commande (créée → payée → préparée → expédiée → livrée), **historique des achats**, factures, **retours** (droit de rétractation), calcul des taxes selon le pays de livraison | F-01, F-06, F-16, F-17 |
+| **SV-3** | **Paiement** | Orchestration des paiements via un prestataire externe, **remboursements** (retours), rapprochement. **Ne stocke jamais de données de carte** (périmètre PCI-DSS réduit) | F-06 |
+| **SV-4** | **Stocks et disponibilité** | Vue **consolidée des stocks des 4 magasins** et du stock web (exclusivités), calcul de la disponibilité en ligne, **réservation** à la commande, demande de transfert entre magasins | F-01, F-02 |
+| **SV-5** | **Expédition et suivi** | Création des envois, choix du magasin expéditeur, étiquettes, **suivi des colis** affiché au client | F-16 |
+| **SV-6** | **Abonnements** | Souscription et renouvellement des abonnements au fanzine (papier, numérique ou les deux), échéances, relances, droits d'accès aux numéros | F-05 |
+
+#### C2. Contenus
+
+| ID | Composant | Responsabilité | Fonctionnalités |
+|---|---|---|---|
+| **SC-1** | **Bibliothèque numérique et liseuse** | Droits de lecture de chaque utilisateur (achat à l'unité ou abonnement), **diffusion protégée** des numéros (pas de téléchargement libre), reprise de lecture | F-03, F-04 |
+| **SC-2** | **Contenus éditoriaux** | News et articles de fond : rédaction, workflow de publication, pages publiques, newsletter éditoriale | F-18, F-19 |
+
+#### C3. Communauté
+
+| ID | Composant | Responsabilité | Fonctionnalités |
+|---|---|---|---|
+| **SM-1** | **Annonces troc et don** | Publication des objets proposés à l'échange ou au don, **listes de recherche** des membres, mise en relation. Émet l'événement « annonce publiée » | F-11, F-12 |
+| **SM-2** | **Messagerie (chat)** | Conversations entre passionnés, en temps réel, historique, blocage d'un utilisateur | F-13 |
+| **SM-3** | **Modération** | File des **signalements des utilisateurs**, **filtrage automatique** (contenus interdits, spam), décisions (masquer, supprimer, avertir, bannir), **traçabilité** des actions | F-14 |
+
+#### C4. Personnalisation et engagement
+
+| ID | Composant | Responsabilité | Fonctionnalités |
+|---|---|---|---|
+| **SP-1** | **Comptes et préférences** | Profil, adresses, **centres d'intérêt**, réglages des notifications et des recommandations | F-10, F-15 |
+| **SP-2** | **Recommandation** | Collecte des événements (recherches, consultations, achats, **navigation** si consentement), calcul des recommandations de produits, détection des correspondances entre une **nouvelle annonce** et les intérêts des membres | F-07, F-08, F-09 |
+| **SP-3** | **Notifications** | Envoi des notifications (sur le site, par email, et plus tard sur mobile) selon les préférences de l'utilisateur, regroupement anti-spam, historique | F-08, F-09, F-16 |
+
+### D. Services transverses
+
+| ID | Composant | Responsabilité |
+|---|---|---|
+| **TR-1** | **Bus d'événements** | Transporte les **événements métier** de façon asynchrone et fiable entre composants (commande payée, annonce publiée, stock modifié…). Découple les émetteurs des consommateurs |
+| **TR-2** | **Stockage de médias** | Images des produits, fichiers des numéros du fanzine (accès **protégé**), photos des annonces |
+| **TR-3** | **Observabilité** | Collecte centralisée des métriques, journaux et traces, alertes, tableaux de bord techniques et métier. Journaux de sécurité |
+| **TR-4** | **Gestion des secrets** | Coffre-fort des clés, mots de passe et certificats, avec rotation |
+
+### E. Intégration
+
+| ID | Composant | Responsabilité |
+|---|---|---|
+| **IN-1** | **Connecteur SI existant** | **Couche anticorruption** entre la plateforme et les applications existantes : traduit les formats, planifie les synchronisations, gère les erreurs et les reprises. Remplace progressivement les échanges CSV manuels |
+| **IN-2** | **Adaptateur paiement** | Isole SV-3 du prestataire de paiement choisi (on peut changer de prestataire sans toucher au métier) |
+| **IN-3** | **Adaptateur transporteur** | Isole SV-5 du transporteur (La Poste aujourd'hui, d'autres demain, en particulier pour le Royaume-Uni) |
+| **IN-4** | **Adaptateur emailing** | Envoi des emails transactionnels (confirmation de commande, notification) et de la newsletter |
+
+### F. Données (vue logique)
+
+| Donnée | Propriétaire | Sensibilité |
+|---|---|---|
+| Comptes, identités, consentements | EN-3, SP-1 | [Élevé] Données personnelles |
+| Commandes, factures | SV-2 | [Élevé] Données personnelles et financières |
+| Transactions de paiement (références uniquement) | SV-3 | Élevé |
+| Catalogue, prix | SV-1 | [Faible] Publique |
+| Stocks consolidés, réservations | SV-4 | [Moyen] Interne |
+| Abonnements, droits de lecture | SV-6, SC-1 | Moyen |
+| Annonces, listes de recherche | SM-1 | Moyen |
+| Messages du chat | SM-2 | [Élevé] Privée |
+| Décisions de modération | SM-3 | [Moyen] À conserver (traçabilité) |
+| Événements de navigation et profils d'intérêt | SP-2 (entrepôt analytique) | [Élevé] Profilage RGPD, avec consentement et durée limitée |
+| News, articles | SC-2 | [Faible] Publique |
+
+---
+
+## 4. Interactions avec les applications existantes et les services externes
+
+> Le contexte indique **qu'aucune intégration automatisée n'existe aujourd'hui** : les échanges se font **manuellement par fichiers CSV**. Les flux ci-dessous sont donc **à construire**. Leur faisabilité dépend des capacités d'échange des applications existantes, qui restent **à vérifier** (voir US-03.3).
+
+### 4.1 Applications existantes (hébergées chez le fournisseur cloud français)
+
+| Application existante | Échange avec la plateforme | Sens | Via | Usage |
+|---|---|---|---|---|
+| **Gestion de stock** | Niveaux de stock par magasin, mouvements | Existant → plateforme | IN-1 → SV-4 | Disponibilité en ligne, éviter la survente |
+| **Gestion de stock** | Réservations et ventes web, demandes de transfert | Plateforme → existant | SV-4 → IN-1 | Décrémenter le stock, organiser les transferts |
+| **Gestion des fournisseurs** | Références produits, fiches fournisseurs | Existant → plateforme | IN-1 → SV-1 | Alimenter le catalogue (en complément de la saisie en back-office) |
+| **CRM** | Clients web, commandes, abonnements | Plateforme → existant | SP-1, SV-2, SV-6 → IN-1 | Vue client unifiée magasins + web, avec consentement |
+| **CRM** | Abonnés existants au fanzine et à la newsletter | Existant → plateforme | IN-1 → SV-6, SC-2 | **Reprise des données** lors du lancement |
+| **Systèmes de caisse** | Ventes en magasin | Indirect | via la gestion de stock | Hypothèse : les caisses mettent déjà à jour la gestion de stock. Pas d'échange direct |
+| **Site vitrine actuel (CMS)** | Abonnés, contenus | Migration ponctuelle | — | Remplacé par la plateforme (hypothèse US-01.1) |
+
+### 4.2 Services externes à contractualiser
+
+| Service | Composant consommateur | Statut |
+|---|---|---|
+| **Prestataire de paiement** (conforme PCI-DSS, européen de préférence) | SV-3 via IN-2 | Nouveau : À choisir |
+| **Transporteur** (La Poste, contrat existant) | SV-5 via IN-3 | Contrat existant, **intégration à construire** |
+| **Service d'envoi d'emails** | SP-3, SC-2 via IN-4 | Nouveau : À choisir (l'outil actuel de la newsletter n'est pas précisé) |
+
+### 4.3 Hors périmètre (pas d'échange en V1)
+
+- **Infrastructure média d'Evil Ed** (serveur multimédia local) : sera concernée en V2 (diffusion vidéo).
+- **Site vitrine d'Evil Ed** : conservé en l'état en V1.
+- **Serveur de fichiers interne** et sauvegardes internes : outils internes non exposés.
+- **Station Mac de PAO** : les numéros du fanzine finalisés sont **téléversés manuellement** via le back-office (UI-2 → SC-1).
+
+---
+
+## 5. Prévoir les versions V2 et V3
+
+Le découpage prévoit dès maintenant la place des évolutions annoncées, sans les construire :
+
+| Évolution | Composant futur | S'appuie sur |
+|---|---|---|
+| **Enchères** (V2) | Service d'enchères | EN-3, SV-3, SM-3, SP-3, TR-1 |
+| **Diffusion des productions Evil Ed** (V2) | Service de diffusion vidéo | SC-1 (droits), TR-2, EN-1 (diffusion) |
+| **Streaming du festival en accès restreint** (V3) | Service de billetterie virtuelle + diffusion | SV-2, SV-3, contrôle des places simultanées |
+
+---
+
+[← Métiers impliqués et leurs interactions](../qualite-devsecops/metiers-et-interactions.md) · [Sommaire](../README.md) · [Architecture macroscopique →](architecture-macroscopique.md)

@@ -1,0 +1,79 @@
+# Mise en production de la version de la branche prod, déclenchée à la main par un approbateur.
+# Deux contrôles : le déclenchement est réservé aux comptes de la variable APPROBATEURS_PROD, puis le
+# déploiement attend l'approbation d'un relecteur de l'environnement GitHub « production » (approbation
+# native, limitée à la branche prod).
+#   gh workflow run mise-en-production.yml --ref prod
+name: Mise en production
+
+on:
+  workflow_dispatch:
+
+run-name: "Mise en production demandée par ${{ github.actor }}"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mise-en-production
+  cancel-in-progress: false
+
+jobs:
+  approbation:
+    name: "Approbateur et version"
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Branche prod uniquement
+        if: github.ref_name != 'prod'
+        run: |
+          echo "::error::La mise en production se lance depuis la branche prod (branche actuelle : ${{ github.ref_name }})"
+          exit 1
+      - name: Contrôle de l'approbateur (liste APPROBATEURS_PROD)
+        run: |
+          approbateurs="${{ vars.APPROBATEURS_PROD || github.repository_owner }}"
+          case " $approbateurs " in
+            *" ${{ github.actor }} "*) echo "Mise en production approuvée par ${{ github.actor }}." >> "$GITHUB_STEP_SUMMARY" ;;
+            *) echo "::error::${{ github.actor }} ne fait pas partie des approbateurs de la production ($approbateurs)"; exit 1 ;;
+          esac
+      - uses: actions/checkout@v7
+      - name: Version de la branche prod
+        id: version
+        run: echo "version=$(npm run -s images:version)" >> "$GITHUB_OUTPUT"
+
+  recette:
+    name: "Recette"
+    needs: approbation
+    uses: ./.github/workflows/recette-validee.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      version: ${{ needs.approbation.outputs.version }}
+
+  production:
+    name: "Production"
+    needs: [approbation, recette]
+    uses: ./.github/workflows/deploiement.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      environnement: prod
+      version: ${{ needs.approbation.outputs.version }}
+    secrets: inherit
+
+  livraison:
+    name: "Tag Git de livraison"
+    needs: [approbation, production]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tag livraison-<date>-<version>
+        run: |
+          tag="livraison-$(date -u +%Y%m%d-%H%M)-${{ needs.approbation.outputs.version }}"
+          git tag "$tag"
+          git push origin "$tag"
+          echo "Version en production : **${{ needs.approbation.outputs.version }}** (tag \`$tag\`)." >> "$GITHUB_STEP_SUMMARY"

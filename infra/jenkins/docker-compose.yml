@@ -1,0 +1,31 @@
+# Jenkins + registre d'images local (équivalent de GHCR côté GitHub).
+# Usage (depuis le dossier infra/jenkins/) :
+#   docker compose up -d --build          → http://localhost:8090 (admin / admin), job multi-branches déjà créé
+#   sh connecter-minikube.sh              → donne à Jenkins l'accès au cluster Kubernetes (accp, prod)
+name: boutique-jenkins
+
+services:
+  jenkins:
+    build: .
+    # ⚠ Démo uniquement : root + socket Docker = accès total à l'hôte (voir limites dans US-04.3)
+    user: root
+    ports:
+      - "8090:8080"                   # 8080 est pris par la passerelle Spring de la boutique
+    environment:
+      JENKINS_ADMIN_PASSWORD: "${JENKINS_ADMIN_PASSWORD:-admin}"
+      # Par défaut : le dépôt Git du projet (racine), monté en lecture seule. Sinon : URL du dépôt GitHub.
+      REPO_URL: "${REPO_URL:-file:///source}"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${SOURCE_DIR:-../..}:/source:ro"
+    depends_on:
+      - registry
+
+  registry:
+    image: registry:2
+    ports:
+      - "5000:5000"
+
+volumes:
+  jenkins_home:

@@ -1,0 +1,86 @@
+#!/bin/sh
+# Déploiement d'un environnement puis test de fumée, commun aux deux pipelines.
+#   sh infra/ci/deployer.sh accp   → Kubernetes, namespaces accp-*, iso-production avec 1 instance par service
+#   sh infra/ci/deployer.sh prod   → Kubernetes, namespaces prod-*, 2 instances, RETOUR ARRIÈRE automatique si échec
+#
+# Variables : REGISTRE et TAG (images à déployer, ex. TAG=v-<version>)
+#             CHARGER_IMAGES = minikube:<profil> | kind:<cluster> | (vide : le cluster tire les images du registre)
+#             REGISTRE_UTILISATEUR et REGISTRE_MOT_DE_PASSE (registre privé, ex. GHCR) : le script crée dans
+#             chaque namespace un secret d'accès au registre, utilisé par le cluster pour tirer les images
+set -eu
+cd "$(dirname "$0")/../.."
+
+ENV="${1:?environnement : accp ou prod}"
+R="${REGISTRE:-}"
+TAG="${TAG:?version des images à déployer}"
+IMAGES="front passerelle identite catalogue commandes notifications expedition postgres"
+
+test_de_fumee_k8s() {
+  kubectl -n "$ENV-publique" delete pod fumee --ignore-not-found >/dev/null
+  kubectl -n "$ENV-publique" run fumee --rm -i --restart=Never --image=python:3.12-alpine \
+    --image-pull-policy=IfNotPresent --env=FRONT=http://front --env=KONG= -- python - < infra/ci/smoke.py
+}
+
+case "$ENV" in
+  accp|prod)
+    # 1. Images disponibles pour le cluster : soit il les tire lui-même du registre privé (GHCR),
+    #    soit elles sont chargées directement dans ses nœuds (registre local inaccessible au cluster)
+    if [ -n "${REGISTRE_MOT_DE_PASSE:-}" ]; then
+      echo "Le cluster tirera les images sur ${R%%/*} (secret d'accès « registre » dans chaque namespace)"
+      kubectl apply -f "infra/k8s/overlays/$ENV/namespaces.yaml"
+      for zone in publique applicative donnees; do
+        ns="$ENV-$zone"
+        kubectl -n "$ns" create secret docker-registry registre --docker-server="${R%%/*}" \
+          --docker-username="${REGISTRE_UTILISATEUR:?}" --docker-password="$REGISTRE_MOT_DE_PASSE" \
+          --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+        # Le compte de service par défaut (créé de façon asynchrone avec le namespace) utilise ce secret
+        until kubectl -n "$ns" get serviceaccount default >/dev/null 2>&1; do sleep 1; done
+        kubectl -n "$ns" patch serviceaccount default -p '{"imagePullSecrets":[{"name":"registre"}]}' >/dev/null
+      done
+    fi
+    case "${CHARGER_IMAGES:-}" in
+      minikube:*)
+        for i in $IMAGES; do
+          for noeud in $(kubectl get nodes -o name | cut -d/ -f2); do
+            docker save "${R}boutique-$i:$TAG" | docker exec -i "$noeud" ctr -n k8s.io images import - >/dev/null
+          done
+        done ;;
+      kind:*)
+        for i in $IMAGES; do kind load docker-image "${R}boutique-$i:$TAG" --name "${CHARGER_IMAGES#kind:}"; done ;;
+    esac
+
+    # 2. Application de l'état souhaité (surcouche Kustomize de l'environnement)
+    echo "Déploiement $ENV : ${R}boutique-*:$TAG (Kubernetes)"
+    kubectl kustomize "infra/k8s/overlays/$ENV" \
+      | sed -E "s#image: boutique-([a-z]+):latest#image: ${R}boutique-\\1:$TAG#" \
+      | kubectl apply -f -
+
+    # 3. Attente du déploiement progressif, puis test de fumée
+    ok=1
+    kubectl -n "$ENV-donnees" rollout status statefulset/postgres --timeout=300s || ok=0
+    kubectl -n "$ENV-donnees" rollout status deploy/rabbitmq --timeout=300s || ok=0
+    for d in passerelle identite catalogue commandes notifications expedition; do
+      kubectl -n "$ENV-applicative" rollout status "deploy/$d" --timeout=420s || ok=0
+    done
+    kubectl -n "$ENV-publique" rollout status deploy/front --timeout=180s || ok=0
+    [ "$ok" -eq 1 ] && test_de_fumee_k8s || ok=0
+
+    if [ "$ok" -ne 1 ]; then
+      echo "ÉCHEC du déploiement $ENV."
+      if [ "$ENV" = "prod" ]; then
+        echo "Retour arrière automatique vers la version précédente…"
+        for d in passerelle identite catalogue commandes notifications expedition; do
+          kubectl -n prod-applicative rollout undo "deploy/$d" || true
+        done
+        kubectl -n prod-publique rollout undo deploy/front || true
+      fi
+      exit 1
+    fi
+    echo "Environnement $ENV déployé et vérifié."
+    ;;
+
+  *)
+    echo "Environnement inconnu : $ENV (accp ou prod ; la branche dev ne déploie rien)"
+    exit 1
+    ;;
+esac

@@ -1,0 +1,4 @@
+# Fins de ligne LF partout : les scripts shell doivent fonctionner dans les conteneurs Linux.
+* text=auto eol=lf
+# Scripts Windows (Maven Wrapper) : fins de ligne CRLF
+*.cmd text eol=crlf

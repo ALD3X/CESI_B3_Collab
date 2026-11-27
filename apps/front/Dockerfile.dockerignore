@@ -1,0 +1,9 @@
+# Contexte de build du front = racine du monorepo : on n'envoie que le nécessaire
+*
+!package.json
+!package-lock.json
+!apps/front/
+!apps/back/package.json
+**/node_modules
+apps/front/dist
+apps/front/coverage

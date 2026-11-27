@@ -1,0 +1,91 @@
+# Démonstration de la première technologie : RabbitMQ
+
+> **Story :** US-05.2 · **Jira :** [SCRUM-28](https://maalsi25.atlassian.net/browse/SCRUM-28) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
+> **Responsable :** Membre C · **Binôme :** Membre B
+> **Scénario de référence :** [US-05.1](domaine-et-criteres.md) §4 · **Application :** [boutique de démonstration](../../README.md) · **Scénario :** [`tools/scenarios/bus.py`](../../tools/scenarios/bus.py) · **Banc de débit :** [`tools/scenarios/banc-brokers/`](../../tools/scenarios/banc-brokers/)
+
+---
+
+## 1. Cas d'usage démontré
+
+Le composant **TR-1 Bus d'événements** de l'architecture, sur le flux **« commande payée »**, **dans la boutique de démonstration** : un membre commande dans le front, le service Commandes (Spring Boot) publie l'événement, les services Notifications et Expédition le consomment, et la notification s'affiche **en direct** dans le navigateur.
+
+Les services utilisent **Spring Cloud Stream** : le code est **identique** pour RabbitMQ et Kafka. Le broker est choisi au démarrage (`npm run boutique -- bus rabbit`). La comparaison porte donc sur le broker seul.
+
+## 2. Topologie mise en place
+
+```mermaid
+flowchart LR
+    P["SV-2 Commandes<br/>(producteur)"] -->|"commande payée"| X{{"exchange topic<br/>commandes"}}
+    X -->|"#"| Q1["file commandes.notifications"]
+    X -->|"#"| Q2["file commandes.expedition"]
+    Q1 --> C1["SP-3 Notifications"]
+    Q2 --> C2["SV-5 Expédition"]
+    Q1 -. "rejeté après 3 tentatives" .-> DLX{{"exchange DLX"}}
+    Q2 -. "rejeté après 3 tentatives" .-> DLX
+    DLX -.-> D1["commandes.notifications.dlq"]
+    DLX -.-> D2["commandes.expedition.dlq"]
+```
+
+| Concept RabbitMQ | Rôle dans la démo |
+|---|---|
+| **Exchange `topic`** | Reçoit les événements et les **route** selon leur clé. Un futur `annonce.publiee` pourra être routé vers d'autres files sans toucher au producteur |
+| **File (queue) par service** | Chaque **groupe** de consommateurs (`notifications`, `expedition`) a **sa** file durable. Un même événement est donc **copié** pour chaque abonné |
+| **Durabilité** | Files `durable` + messages `persistent` : ils survivent à un redémarrage du broker |
+| **Acquittement (`ack`)** | Le message n'est retiré de la file **qu'après** traitement réussi. S'il n'y a pas d'acquittement (panne du consommateur), il est redistribué |
+| **Dead letter exchange** | Activé par **une ligne de configuration** (`auto-bind-dlq: true`). Après 3 tentatives, le message est déplacé vers la DLQ du service. Le mécanisme est **natif au broker** |
+| **Confirmation d'écriture** | Banc de débit : transaction AMQP par lot de 500 messages, le broker confirme l'écriture sur disque |
+
+## 3. Déroulé de la démonstration (environ 3 min)
+
+| # | Action | Ce que la direction voit |
+|---|---|---|
+| 1 | `npm run boutique -- bus rabbit` (lancé avant la soutenance) | La boutique tourne sur RabbitMQ, l'en-tête du site l'indique |
+| 2 | Commander dans la boutique (http://localhost:3000) | La notification « commande payée » arrive **en direct** |
+| 3 | Ouvrir la console http://localhost:15672 | Interface d'administration intégrée au broker |
+| 4 | `npm run scenario:bus` | Étape par étape, les vérifications s'affichent |
+| 5 | Pendant l'étape 2, montrer l'onglet *Queues* | La file `commandes.expedition` **accumule** 5 messages pendant la « panne », puis se vide au redémarrage |
+| 6 | Étape 3 | Le nouveau service « recommandations » ne reçoit **rien** du passé : ce qui a été consommé est supprimé |
+| 7 | Étape 4, onglet *Queues* | La file `commandes.notifications.dlq` contient le message invalide, disponible pour analyse |
+
+## 4. Résultats observés
+
+**Scénario sur la boutique** (poste Windows 11, Docker Desktop, le 27/11/2026, services Spring Boot 4.0) :
+
+| Étape | Résultat | Attendu | Statut |
+|---|---|---|---|
+| 1. Diffusion (notifications / expédition) | 5 / 5 | 5 / 5 | OK |
+| 2. Panne : notifications en ligne / expédition rattrapée | 5 / 5 | 5 / 5 | OK |
+| 3. Rejeu de l'historique par un nouveau service | 0 | 0 | (limite du modèle) |
+| 4. Poison : traité / isolé en DLQ | 0 / 1 | 0 / 1 | OK |
+| **Bilan** | **7 / 7 vérifications**, 49 s (dont le redémarrage du service expédition) | | OK |
+
+**Mesures dans la boutique** (`tools/scenarios/mesures.py`, 40 commandes) : délai entre la commande et la notification reçue dans le navigateur **28 ms en médiane, 50 ms au 95e centile**. Mémoire du broker **147 Mio**, image de **109 Mio**.
+
+**Banc de débit brut** (`tools/scenarios/banc-brokers/`, 20 000 messages de 186 octets, client dans le réseau Docker, 3 passes, mesuré le 14/11/2026) :
+
+| Mode | Publication | Consommation |
+|---|---|---|
+| Confirmation par lot de 500 | **11 000 à 11 700 msg/s** | **15 200 à 18 700 msg/s** |
+| Sans confirmation | 21 400 msg/s | 18 200 msg/s |
+| Confirmation **unitaire** (le client attend chaque message) | **263 msg/s** | 16 000 msg/s |
+
+**Empreinte (banc brut) :** **169 Mio** de mémoire au repos (console incluse), démarrage à froid en **~7 s**.
+
+## 5. Prérequis et limites rencontrés
+
+| Constat | Détail |
+|---|---|
+| **Mise en place rapide** | 2 variables d'environnement (utilisateur, mot de passe). La console d'administration est livrée avec le broker |
+| **DLQ native** | Fonction du broker (`x-dead-letter-exchange`), activée par une ligne de configuration. Aucun code applicatif |
+| **Intégration Spring** | Spring Cloud Stream et Spring AMQP : le binder RabbitMQ est le plus ancien et le plus éprouvé |
+| **Routage expressif** | Les clés à motifs (`commande.#`) permettent d'ajouter des types d'événements sans modifier les producteurs |
+| **Confirmation unitaire très lente** | 263 msg/s : chaque message attend son écriture disque. Il faut **confirmer par lot** ou utiliser des confirmations asynchrones. C'est un **piège** à connaître pour les développeurs juniors |
+| **Piège de mesure rencontré** | Depuis l'hôte Windows, la confirmation unitaire tombait à **19 msg/s**, à cause du proxy de ports de Docker Desktop (environ 50 ms par aller-retour). D'où les mesures faites dans le réseau Docker |
+| **Mode transactionnel** | Il retient aussi les acquittements jusqu'au commit : il faut un **canal séparé** pour lire (bug rencontré et corrigé pendant la démo) |
+| **Pas de rejeu** | Un message acquitté est supprimé. Un nouveau service ne voit que les messages **futurs**. *Atténuation possible :* les **RabbitMQ Streams** (depuis la version 3.9) offrent un journal relisible, au prix d'un second modèle à maîtriser |
+| **Bibliothèque `pika` synchrone** | Simple à apprendre, mais pas de confirmations asynchrones en mode bloquant. En production, préférer un client asynchrone |
+
+---
+
+[← Choix du domaine technique et des critères de comparaison](domaine-et-criteres.md) · [Sommaire](../README.md) · [Démonstration de la seconde technologie : Apache Kafka →](demo-kafka.md)

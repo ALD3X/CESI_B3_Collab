@@ -1,0 +1,127 @@
+# Mise en place du suivi commun
+
+> **Story :** US-01.3 · **Jira :** [SCRUM-16](https://maalsi25.atlassian.net/browse/SCRUM-16) · **Epic :** EPIC 01, Cadrage et organisation du groupe
+> **Objectif :** suivre l'avancement des stories pour détecter rapidement les blocages.
+
+---
+
+## 1. Tableau partagé : board Jira
+
+**Référence unique :** le board Jira du projet **BLOC3** (clé `SCRUM`), sprint *SCRUM Sprint 0*.
+ https://maalsi25.atlassian.net/jira/software/projects/SCRUM/boards/1
+
+### 1.1 Colonnes (workflow)
+
+| Colonne | Signification | Qui déplace la carte |
+|---|---|---|
+| **À faire** | Story prête, pas encore commencée | — |
+| **En cours** | Le responsable travaille dessus. **2 stories au maximum en cours par personne** | Le responsable |
+| **En cours de revue** | Livrable terminé, en attente de relecture par le binôme | Le responsable |
+| **Terminé** | Relu, validé, *Definition of Done* respectée | **Le binôme** (jamais l'auteur) |
+
+### 1.2 Conventions des tickets
+
+- **Responsable :** le champ *Assignee* est obligatoire dès le passage en « En cours ».
+- **Labels :** `J1` à `J6` indiquent le jalon de la consigne, `P0` (indispensable à la soutenance) ou `P1` (important mais secondaire) la priorité.
+- **Hiérarchie :** Epic → Story → sous-tâches facultatives pour découper une story longue (par exemple une démo).
+- **Lien vers le livrable :** chaque story terminée reçoit en commentaire le lien vers son fichier `docs/...md` et, si elle en a une, vers sa pull request.
+- **Blocage :** ajouter le flag *Impediment* (drapeau) sur la carte **et** le signaler dans `#blocages`.
+
+### 1.3 Vue d’ensemble des stories (au 14/11/2026)
+
+| Story | Intitulé | Jour | Prio | Responsable | Binôme | Statut |
+|---|---|---|---|---|---|---|
+| SCRUM-14 | US-01.1 Synthétiser le besoin | J1 | P0 | Membre A | Membre B | En cours de revue |
+| SCRUM-15 | US-01.2 Répartir les rôles et tâches | J1 | P0 | Membre A | Membre B | En cours de revue |
+| SCRUM-16 | US-01.3 Mettre en place le suivi commun | J1 | P1 | Membre A | Membre B | En cours de revue |
+| SCRUM-17 | US-02.1 Attributs de qualité | J2 | P0 | Membre B | Membre D | En cours de revue |
+| SCRUM-18 | US-02.2 Cycle DevSecOps | J2 | P0 | Membre B | Membre D | En cours de revue |
+| SCRUM-19 | US-02.3 Métiers et interactions | J2 | P0 | Membre D | Membre B | En cours de revue |
+| SCRUM-20 | US-03.1 Composants fonctionnels | J2 | P0 | Membre A | Membre C | En cours de revue |
+| SCRUM-21 | US-03.2 Architecture macroscopique | J2 | P0 | Membre A | Membre C | En cours de revue |
+| SCRUM-22 | US-03.3 Couverture du besoin | J2 | P1 | Membre C | Membre A | En cours de revue |
+| SCRUM-23 | US-04.1 Candidats CI/CD et critères | J3 | P0 | Membre B | Membre D | En cours de revue |
+| SCRUM-24 | US-04.2 Démo outil CI/CD n°1 | J3-J4 | P0 | Membre B | Membre D | En cours |
+| SCRUM-25 | US-04.3 Démo outil CI/CD n°2 | J3-J4 | P0 | Membre D | Membre B | En cours de revue |
+| SCRUM-26 | US-04.4 Conclusion comparative CI/CD | J4 | P0 | Membre B | Membre D | En cours de revue |
+| SCRUM-27 | US-05.1 Domaine technique à comparer | J3 | P0 | Membre C | Membre B | En cours de revue |
+| SCRUM-28 | US-05.2 Démo technologie n°1 | J3-J4 | P0 | Membre C | Membre B | En cours de revue |
+| SCRUM-29 | US-05.3 Démo technologie n°2 | J3-J4 | P0 | Membre A | Membre C | En cours de revue |
+| SCRUM-30 | US-05.4 Argumenter le choix technique | J4 | P0 | Membre C | Membre B | En cours de revue |
+| SCRUM-31 | US-06.1 Architecture de l'orchestrateur | J5 | P0 | Membre D | Membre B | En cours de revue |
+| SCRUM-32 | US-06.2 Catégories de tests | J5 | P0 | Membre D | Membre B | En cours de revue |
+| SCRUM-33 | US-06.3 Tests dans le CI/CD | J5 | P0 | Membre D | Membre B | En cours de revue |
+| SCRUM-34 | US-07.1 Inventaire applicatif | J5 | P0 | Membre C | Membre D | En cours de revue |
+| SCRUM-35 | US-07.2 Contrôles et scans de sécurité | J5 | P0 | Membre C | Membre D | En cours de revue |
+| SCRUM-36 | US-07.3 Supervision et incidents | J5 | P0 | Membre B | Membre D | En cours de revue |
+| SCRUM-37 | US-07.4 Amélioration continue | J5 | P0 | Membre C | Membre D | En cours de revue |
+| SCRUM-38 | US-08.1 Recommandation globale | J5 | P0 | Membre A | Membre C | En cours de revue |
+| SCRUM-39 | US-08.2 Scénariser les démos | J5-J6 | P0 | Membre A | Membre C | En cours de revue |
+| SCRUM-40 | US-08.3 Organisation et REX | J5-J6 | P0 | Membre A | Membre C | En cours de revue |
+| SCRUM-41 | US-08.4 Répétition et questions | J6 | P0 | Tous | — | En cours (répétitions à faire) |
+
+> Ce tableau est une **photo à date**. **Jira fait foi** : en cas d'écart, c'est le board qui a raison.
+
+---
+
+## 2. Points de synchronisation
+
+| Rituel | Quand | Durée | Animateur | Contenu |
+|---|---|---|---|---|
+| **Daily (stand-up)** | Chaque jour à 9h00, devant le board | 15 min max | Coordinateur (Membre A) | Chacun répond à 3 questions : *qu'ai-je fini ? que fais-je aujourd'hui ? qu'est-ce qui me bloque ?* On déplace les cartes en direct |
+| **Point de mi-journée** | Chaque jour vers 13h30 | 10 min | Coordinateur | Vérification rapide des blocages, réaffectation si besoin |
+| **Revue de fin de journée** | Chaque jour à 17h00 | 20 min | Coordinateur | Démonstration ou lecture rapide de ce qui est passé « En cours de revue », vérification du jalon du jour (labels `Jx`), compte rendu posté dans `#général` |
+| **Point de décision J3** | J3 en fin de matinée | 30 min | Pilotes EPIC 04 et 05 | Validation collective des 2 outils CI/CD et du domaine technique comparé |
+| **Rétrospective** | Fin de J5 | 30 min | Coordinateur | Ce qui a marché, les difficultés, les axes d'amélioration. Alimente US-08.3 (REX) |
+
+### Règle d'escalade des blocages
+
+1. Bloqué depuis **plus de 30 min** : message dans `#blocages`, avec le ticket marqué *Impediment*.
+2. Pas de solution dans l'heure : le **binôme** intervient.
+3. Toujours bloqué au point suivant : le coordinateur **réaffecte** ou **redécoupe** la story.
+
+---
+
+## 3. Processus de revue croisée
+
+### 3.1 Déroulé
+
+```
+Auteur termine ─► PR/MR sur le dépôt Git + carte « En cours de revue » + ping du binôme
+                         │
+                         ▼
+             Binôme relit (délai max : demi-journée)
+                         │
+          ┌──────────────┴──────────────┐
+          ▼ ▼
+    Approuvé Corrections demandées
+   Binôme fusionne la PR (commentaires dans la PR)
+   et passe la carte Auteur corrige → nouvelle relecture
+   en « Terminé »
+```
+
+- Le **binôme** de chaque epic est défini dans [US-01.2](roles-et-taches.md#2-pilote-et-binôme-par-epic).
+- Les livrables **structurants** (US-01.1, US-02.1, US-03.2, US-04.1, US-05.1, US-08.1) sont relus par **tout le groupe** pendant la revue de fin de journée.
+
+### 3.2 Grille de relecture
+
+Le relecteur vérifie :
+
+- [ ] **Tous les critères d'acceptation** du ticket Jira sont couverts.
+- [ ] Le contenu est **cohérent avec la synthèse du besoin** ([US-01.1](synthese-du-besoin.md)) et utilise les identifiants F-xx / C-xx quand c'est pertinent.
+- [ ] Les choix sont **justifiés par le contexte** de la Petite Maison de l'Épouvante, pas seulement de façon générique.
+- [ ] Les schémas sont **faits maison** et lisibles, avec leurs sources versionnées.
+- [ ] Le livrable est **réutilisable dans le PPT** (messages clés identifiables).
+- [ ] Pour une démo : elle **tourne de bout en bout** sur une autre machine que celle de l'auteur, et une procédure de lancement est documentée.
+
+### 3.3 Definition of Done (story « Terminé »)
+
+1. Critères d'acceptation remplis.
+2. Livrable versionné dans `docs/` (et code de démo dans le dépôt si concerné).
+3. Relu et approuvé par le binôme.
+4. Ticket Jira à jour : responsable, statut et lien vers le livrable en commentaire.
+5. Messages clés transmis au responsable du support PPT (Membre C).
+
+---
+
+[← Répartition des rôles et des tâches](roles-et-taches.md) · [Sommaire](../README.md) · [Attributs de qualité logicielle →](../qualite-devsecops/attributs-de-qualite.md)

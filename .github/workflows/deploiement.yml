@@ -1,0 +1,69 @@
+# 3. Déploiement continu, à partir de la recette : la branche dev ne déploie rien (intégration continue).
+#   accp : Kubernetes, namespaces accp-*  ┐ le cluster tire lui-même les images sur GHCR,
+#   prod : Kubernetes, namespaces prod-*  ┘ avec un secret d'accès au registre (imagePullSecret)
+# Cible Kubernetes : le cluster du secret KUBECONFIG de l'environnement GitHub ; à défaut, un cluster
+# éphémère (kind) créé dans le runner, qui tire les images sur GHCR exactement comme un vrai cluster.
+# Appelé par pipeline.yml (accp) et mise-en-production.yml (prod).
+name: Déploiement
+
+on:
+  workflow_call:
+    inputs:
+      environnement:
+        description: "accp ou prod"
+        type: string
+        required: true
+      version:
+        description: "Version des images à déployer (sans le préfixe v-)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deployer:
+    name: "Déploiement ${{ inputs.environnement }}"
+    runs-on: ubuntu-24.04
+    # Environnements GitHub : historique des déploiements, secrets propres (KUBECONFIG, GHCR_LECTURE),
+    # relecteur obligatoire sur « production » : le déploiement attend son approbation
+    environment: ${{ inputs.environnement == 'prod' && 'production' || 'accp' }}
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TAG: v-${{ inputs.version }}
+      KUBECONFIG_CONTENU: ${{ secrets.KUBECONFIG }}
+      # Accès en lecture au registre, transmis au cluster. GHCR_LECTURE : jeton durable pour un vrai
+      # cluster (le jeton du workflow expire à la fin du job, il suffit pour un cluster éphémère).
+      REGISTRE_UTILISATEUR: ${{ github.actor }}
+      REGISTRE_MOT_DE_PASSE: ${{ secrets.GHCR_LECTURE || secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Registre des images
+        run: echo "REGISTRE=ghcr.io/${GITHUB_REPOSITORY,,}/" >> "$GITHUB_ENV"
+
+      - name: Cible - cluster Kubernetes éphémère (aucun KUBECONFIG fourni)
+        if: env.KUBECONFIG_CONTENU == ''
+        uses: helm/kind-action@v1
+        with: { cluster_name: boutique }
+      - name: Cible - cluster réel de l'environnement
+        if: env.KUBECONFIG_CONTENU != ''
+        run: mkdir -p ~/.kube && printf '%s' "$KUBECONFIG_CONTENU" > ~/.kube/config
+      - name: Déploiement (le cluster tire les images sur GHCR), test de fumée, retour arrière en prod si échec
+        run: npm run deployer -- "${{ inputs.environnement }}"
+
+      - name: Étiquettes de l'environnement sur les images
+        run: |
+          case "${{ inputs.environnement }}" in
+            accp) npm run images:etiqueter -- accp
+                  npm run images:etiqueter -- "accp-${{ inputs.version }}"
+                  echo "Version **${{ inputs.version }}** recettée : prête pour la production." >> "$GITHUB_STEP_SUMMARY" ;;
+            prod) npm run images:etiqueter -- prod
+                  npm run images:etiqueter -- "prod-${{ inputs.version }}" ;;
+          esac

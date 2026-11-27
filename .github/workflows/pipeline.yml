@@ -1,0 +1,78 @@
+# Chaîne CI/CD de la boutique (GitHub Actions) : orchestrateur.
+# Mêmes étapes et mêmes commandes que le Jenkinsfile : les scripts du package.json (npm run …).
+#
+# Découpage en workflows réutilisables :
+#   pipeline.yml            ce fichier : déclencheurs (push, PR) et enchaînement des étapes
+#   controles.yml           1. qualité et sécurité du code : 4 jobs en parallèle
+#   images.yml              2. images : construites UNE fois, scannées, testées de bout en bout, publiées sur GHCR
+#   deploiement.yml         3. déploiement en recette ou en production à partir des images publiées sur GHCR
+#   recette-validee.yml     contrôle : seule une version recettée peut aller en production
+#   mise-en-production.yml  déclenchement manuel de la mise en production (approbateurs)
+#
+# accp et prod n'acceptent que des pull requests (dev → accp, accp → prod) : un ruleset GitHub refuse
+# tout push direct, force-push ou suppression de ces branches.
+#
+# Branches et environnements :
+#   feature/* → PR vers dev, et dev (par défaut) : intégration continue UNIQUEMENT : contrôles, build des
+#                       images, scan, test de bout en bout. Aucune publication, aucun déploiement
+#   accp (recette)    : images construites UNE fois et publiées sur GHCR (v-<version>), déployées en recette,
+#                       étiquetées accp-<version> si la recette réussit
+#   prod (production) : MÊMES images (pas de reconstruction), contrôle de la version recettée ;
+#                       la mise en production passe par mise-en-production.yml
+name: CI/CD boutique
+
+on:
+  # Pas de filtre « paths » sur les pushs : une promotion (dev → accp → prod) ne modifie aucun fichier,
+  # et GitHub ignorerait alors le push.
+  push:
+    branches: [dev, accp, prod]
+  pull_request:
+    branches: [dev, accp, prod]
+    paths: ["apps/**", "infra/**", "package.json", "package-lock.json", "turbo.json", "Jenkinsfile", ".github/workflows/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: boutique-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  controles:
+    name: "Contrôles"
+    uses: ./.github/workflows/controles.yml
+
+  images:
+    name: "Images"
+    needs: controles
+    uses: ./.github/workflows/images.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      publier: ${{ github.event_name == 'push' && (github.ref_name == 'accp' || github.ref_name == 'prod') }}
+      promotion: ${{ github.ref_name == 'accp' || github.ref_name == 'prod' }}
+
+  recette:
+    name: "Recette"
+    needs: images
+    if: github.event_name == 'push' && github.ref_name == 'accp'
+    uses: ./.github/workflows/deploiement.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      environnement: accp
+      version: ${{ needs.images.outputs.version }}
+    secrets: inherit
+
+  candidat-prod:
+    name: "Production"
+    needs: images
+    if: github.event_name == 'push' && github.ref_name == 'prod'
+    uses: ./.github/workflows/recette-validee.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      version: ${{ needs.images.outputs.version }}

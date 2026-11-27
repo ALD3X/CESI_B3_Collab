@@ -1,0 +1,104 @@
+# Argumentation du choix technique : bus d'événements
+
+> **Story :** US-05.4 · **Jira :** [SCRUM-30](https://maalsi25.atlassian.net/browse/SCRUM-30) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
+> **Responsable :** Membre C · **Contributeur :** Membre A
+> **Entrées :** [US-05.1, critères](domaine-et-criteres.md) · [US-05.2, démo RabbitMQ](demo-rabbitmq.md) · [US-05.3, démo Kafka](demo-kafka.md)
+
+---
+
+## 1. Faits observés pendant les démonstrations
+
+| Observation | RabbitMQ | Kafka | Source |
+|---|---|---|---|
+| Scénario identique (7 vérifications) | 7/7 | 7/7 | US-05.2 §4, US-05.3 §4 |
+| Aucune perte en cas de panne d'un service | OK | | Étape 2 |
+| Un nouveau service relit l'historique | 0 message | 10 messages | Étape 3 |
+| Message invalide isolé | par configuration (fonction du broker) | par configuration (fonction du framework, pas du broker) | Étape 4 |
+| Publication garantie (20 000 messages) | ~11 300 msg/s | ~22 000 msg/s | Banc |
+| Consommation (20 000 messages) | ~17 000 msg/s | ~240 000 msg/s | Banc |
+| Mémoire dans la boutique | **147 Mio** | **328 Mio** | `tools/scenarios/mesures.py` |
+| Mémoire sous la charge du banc brut | **169 Mio** | **995 Mio** (+ 386 Mio de console) | `docker stats` |
+| Délai commande → notification (p50 / p95) | 28 / 50 ms | 30 / 50 ms | `tools/scenarios/mesures.py` |
+| Configuration d'un nœud | 2 variables | 13 variables | `infra/compose/compose.yaml` |
+| Démarrage à froid | ~7 s | ~8 s | Mesure |
+
+> **Faits et hypothèses.** Les chiffres ci-dessus sont **mesurés** sur un poste de développement à nœud unique : scénario et délais sur la **boutique de démonstration** (27/11/2026), débit sur le banc brut (14/11/2026). Ils servent à **comparer** les deux technologies, pas à dimensionner la production. Les éléments de production (nombre de nœuds, offres managées) sont des **hypothèses** issues de la documentation des éditeurs.
+
+---
+
+## 2. Forces, faiblesses et limites
+
+### RabbitMQ
+
+| Forces | Faiblesses | Limites |
+|---|---|---|
+| **Simple à exploiter** : 1 conteneur, 2 variables, console intégrée | Confirmation unitaire très lente (263 msg/s) : piège pour des juniors | **Pas de rejeu** de l'historique avec les files classiques |
+| **Routage riche** (exchanges topic, motifs) sans modifier les producteurs | Bibliothèque Python de référence (`pika`) synchrone | Débit plafonné à quelques dizaines de milliers de msg/s par file |
+| **DLQ, TTL, priorités natifs** : la gestion d'erreur est de la configuration | Le mode transactionnel impose un canal séparé pour la lecture | Une file très longue (consommateur arrêté longtemps) consomme de la mémoire |
+| **Empreinte faible** : 169 Mio | | |
+| Protocole standard (AMQP), clients dans tous les langages | | |
+
+### Kafka
+
+| Forces | Faiblesses | Limites |
+|---|---|---|
+| **Rejeu natif** : l'historique est une ressource partagée | **Configuration et concepts plus lourds** (partitions, groupes, positions, rétention) | **Pas de DLQ ni de routage fin dans le broker** : la DLQ vient du framework (Spring Cloud Stream), le routage fin reste à coder |
+| **Débit très élevé** (×2 en publication, ×14 en consommation) | Rééquilibrage des groupes à gérer dans le code | **Empreinte 2,2 à 6 fois supérieure** et 3 nœuds recommandés en production |
+| **Ordre garanti par clé** (par client, par enchère) | Console tierce à déployer et à sécuriser | Surdimensionné pour moins de 100 événements par seconde |
+| Écosystème analytique (Kafka Connect, Kafka Streams) | Commit de position à faire par lot, sinon le débit chute | |
+
+---
+
+## 3. Notation pondérée
+
+Notes de 1 (faible) à 5 (excellent). Les poids sont fixés dans [US-05.1](domaine-et-criteres.md) §3, **avant** les démos.
+
+| Critère | Poids | RabbitMQ | Kafka | Justification |
+|---|---|---|---|---|
+| K1 Fiabilité de livraison | ×3 | **5** | **5** | Aucune perte lors de la panne, écriture confirmée sur les deux |
+| K2 Simplicité d'exploitation | ×3 | **4** | 2 | 2 variables contre 13, console intégrée, moins de concepts |
+| K3 Routage et gestion des erreurs | ×2 | **5** | 4 | DLQ par configuration des deux côtés, mais native au broker pour RabbitMQ et dépendante du framework pour Kafka. Routage fin par configuration contre du code |
+| K4 Rejeu de l'historique | ×2 | 2 | **5** | 0 contre 10 messages relus (étape 3). Les Streams RabbitMQ atténuent cette limite |
+| K5 Performance (débit) | ×1 | 3 | **5** | Kafka est nettement devant, mais les deux dépassent largement le besoin V1 |
+| K6 Sécurité | ×2 | 4 | 4 | Les deux offrent TLS, l'authentification et des droits par ressource. RabbitMQ isole simplement par *vhost*, Kafka par ACL |
+| K7 Empreinte et coût | ×2 | **5** | 2 | 169 Mio sur 1 nœud contre 995 Mio sur 3 nœuds recommandés |
+| K8 Écosystème et compétences | ×1 | 4 | 4 | Les deux sont très répandus et disponibles en service managé |
+| **Total (sur 80)** | | **66** | **60** | |
+
+**Analyse de sensibilité :** si l'on renforce les critères favorables à Kafka (rejeu ×4, débit ×3), le classement **s'inverse** (Kafka 80, RabbitMQ 76). Le choix dépend donc de **la place que prendra l'historique d'événements** dans la feuille de route. C'est une décision d'architecture, pas une question de performance.
+
+---
+
+## 4. Recommandation pour la Petite Maison de l'Épouvante
+
+### Recommandation : RabbitMQ pour la V1
+
+**Pourquoi, dans ce contexte précis :**
+- **Équipe réduite (C-11) :** un seul DevOps à recruter. RabbitMQ s'exploite sur un nœud (deux en haute disponibilité) avec une console intégrée. Kafka demande en production un cluster de 3 nœuds et une expertise spécifique.
+- **Besoin V1 = intégration entre services :** commandes, notifications, modération et synchronisation du SI existant demandent du **routage** et une **gestion d'erreur** fiable, que RabbitMQ fournit par configuration.
+- **Volumétrie :** moins de 100 événements par seconde, contre plus de 11 000 mesurés. La supériorité de Kafka en débit n'apporte **aucun bénéfice** en V1.
+- **Coût d'hébergement en Europe (C-04) :** empreinte 2,2 fois plus faible dans la boutique, 6 fois sous forte charge.
+
+**Cohérence avec le reste du dossier :**
+- **Architecture (US-03.2) :** TR-1 publie des faits métier. Les adaptateurs IN-x et le connecteur SI (IN-1) consomment des files dédiées, avec des DLQ pour les échecs d'intégration (remplacement des CSV, C-05).
+- **Qualité (US-02.1) :** fiabilité (critique) (K1 = 5) et maintenabilité (durable) (K2, K3).
+- **CI/CD (US-04.4) :** même philosophie que pour la CI, *« ne pas exploiter ce dont on n'a pas besoin »*.
+
+**Conditions de mise en œuvre :**
+1. **Confirmations par lot ou asynchrones** obligatoires dans les producteurs. Règle de revue de code (cf. le piège à 263 msg/s).
+2. **Files de type *quorum*** (répliquées) en production, sur 3 nœuds ou en service managé hébergé dans l'UE.
+3. **Les événements sont aussi archivés** (stockage ou entrepôt analytique) pour alimenter les recommandations. Cela compense l'absence de rejeu.
+4. **Contrats d'événements versionnés** (schéma JSON), pour pouvoir changer de broker sans réécrire les services.
+
+### Quand Kafka deviendrait le bon choix
+
+Cette recommandation **n'est pas universelle**. Kafka (ou les Streams RabbitMQ, en étape intermédiaire) deviendrait préférable si :
+- la **V2 enchères** génère des milliers d'enchères concurrentes par seconde, avec un **ordre strict** par lot ;
+- la **V2 vidéo** produit des événements de lecture massifs pour l'analytique ;
+- les **recommandations** (F-07) évoluent vers un modèle qui doit **relire l'historique** en continu (*event sourcing*).
+
+> **Message pour la soutenance :** *« Les deux brokers ont passé le même scénario sans perdre une commande. Kafka est plus puissant et garde l'historique, mais pour notre volumétrie et notre équipe, RabbitMQ apporte la même fiabilité, avec moins de ressources et beaucoup moins de complexité. Et grâce à Spring Cloud Stream, le code de la boutique est le même pour les deux : on l'a basculé en trente secondes. Nous gardons les événements archivés et les contrats versionnés pour pouvoir basculer vers Kafka si la V2 l'exige. »*
+
+---
+
+[← Démonstration de la seconde technologie : Apache Kafka](demo-kafka.md) · [Sommaire](../README.md) · [Comparaison complémentaire : passerelle d'API (Spring Cloud Gateway et Kong) →](../passerelle-api/spring-cloud-gateway-ou-kong.md)

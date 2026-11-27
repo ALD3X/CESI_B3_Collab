@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "build": {
+      "outputs": ["dist/**", "*/target/*.jar"]
+    },
+    "test": {
+      "outputs": ["coverage/**", "*/target/surefire-reports/**", "*/target/site/jacoco/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

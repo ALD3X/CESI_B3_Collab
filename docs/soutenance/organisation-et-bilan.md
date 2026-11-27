@@ -1,0 +1,72 @@
+# Organisation du groupe et retour d'expérience
+
+> **Story :** US-08.3 · **Jira :** [SCRUM-40](https://maalsi25.atlassian.net/browse/SCRUM-40) · **Epic :** EPIC 08, Synthèse, soutenance et retour d'expérience
+> **Responsable :** Membre A · **Binôme :** Membre C
+> **Entrées :** [US-01.2, rôles](../cadrage/roles-et-taches.md) · [US-01.3, suivi commun](../cadrage/suivi-du-projet.md) · rétrospective de fin de J5
+
+**But :** présenter **comment le groupe a travaillé** en début de soutenance, puis un **bilan honnête** en conclusion.
+
+> **À compléter par le groupe lors de la rétrospective de J5.** Les sections marquées contiennent une proposition de départ issue de ce qui est **traçable** (board, dépôt, démos). Le ressenti de l'équipe ne peut venir que de ses membres.
+
+---
+
+## 1. Organisation présentée en introduction (1 slide)
+
+| Élément | Contenu |
+|---|---|
+| **Méthode** | Scrum allégé : 1 sprint de 2 semaines (J1 à J6), 8 epics, 28 stories avec critères d'acceptation |
+| **Rôles transverses** | A coordinateur / Scrum Master · B responsable technique des démos · C support de soutenance · D qualité documentaire |
+| **Pilotage des epics** | Un **pilote** et un **binôme relecteur** par epic. **Chaque membre porte une démo** |
+| **Parole en soutenance** | A : vision d'ensemble · B : comparaison CI/CD · C : bus d'événements · D : passerelle d'API |
+| **Rituels** | Daily à 9h, point de mi-journée, revue de fin de journée, point de décision J3, rétrospective J5 |
+| **Outils** | Jira (board SCRUM), Git (une branche par story, PR relue par le binôme), Markdown (`docs/`), Mermaid / draw.io (schémas faits maison), Discord |
+| **Qualité de nos propres livrables** | *Definition of Done*, revue croisée systématique, démos rejouables et **auto-vérifiées** (le scénario de messagerie contrôle ses 7 résultats attendus) |
+
+**Schéma à présenter :** le chemin critique de [US-01.2](../cadrage/roles-et-taches.md) §4, simplifié.
+
+---
+
+## 2. Bilan
+
+### 2.1 Points forts
+
+| Point fort | Preuve |
+|---|---|
+| **Démarche comparative rigoureuse** : critères et poids fixés **avant** les démos, scénario **identique** pour les deux outils | US-04.1, US-05.1. Notation pondérée avec analyse de sensibilité |
+| **Une application de démonstration commune** (front + microservices) pour toutes les démos, reproductibles et vérifiées automatiquement | Boutique : `tools/scenarios/bus.py` (7/7 sur chaque broker), `tools/scenarios/passerelle.py` (12/12 et 11/12), pipelines identiques sur GitHub Actions et Jenkins, même boutique sur Kubernetes |
+| **Cohérence d'ensemble** : chaque choix est relié aux attributs de qualité et aux contraintes du contexte | US-08.1 §2 (matrice de cohérence) |
+| **Traçabilité** : chaque story Jira renvoie à un livrable versionné | Board SCRUM, commentaires des tickets |
+| *Ambiance et entraide* | *À compléter* |
+
+### 2.2 Difficultés rencontrées et solutions appliquées
+
+| Difficulté | Solution appliquée |
+|---|---|
+| **Mesure de performance faussée** : depuis Windows, RabbitMQ semblait plafonner à 19 msg/s | Analyse (le temps d'aller-retour était normal, `TCP_NODELAY` déjà actif), puis mesures déplacées **dans le réseau Docker** pour supprimer l'effet du proxy de ports de Docker Desktop |
+| **Comparaison biaisée par notre propre code** : confirmation message par message côté RabbitMQ, commit par message côté Kafka | Les deux brokers ont été alignés sur une **confirmation par lot**. Les biais sont documentés dans US-05.2 et US-05.3 |
+| **Le mode transactionnel de RabbitMQ bloquait la lecture** à 500 messages | Canal de lecture séparé |
+| **Configuration de Kafka** (écoutes réseau, KRaft) plus longue que prévu | Fichier `infra/compose/compose.yaml` commenté, réutilisable |
+| **Hypothèse erronée sur minikube** : nous pensions que les NetworkPolicy n'y étaient pas appliquées | **Vérification par un test** (appel bloqué depuis un autre namespace), puis ajout de l'étape `cloisonnement` à la démo |
+| *Organisation : charge, disponibilités, coordination* | *À compléter* |
+
+**Leçon commune :** *mesurer avant de conclure.* Trois de nos hypothèses (débit de RabbitMQ, coût du commit Kafka, NetworkPolicy) étaient fausses, et seule la démonstration l'a révélé.
+
+### 2.3 Axes d'amélioration
+
+| Axe | Pour la suite |
+|---|---|
+| **Mesurer plus tôt** | Lancer un premier banc dès J3 plutôt qu'à la fin des démos, pour détecter les biais de mesure avant la rédaction |
+| **Démos sur une machine de référence commune** | Les mesures dépendent du poste. Une machine ou un environnement cloud partagé rendrait les chiffres comparables entre membres |
+| **Exécuter la CI réelle plus tôt** | Le run de GitHub Actions sur les runners GitHub est resté à mesurer (US-04.2 §5) |
+| **Chiffrer les coûts** | Les coûts des services managés en Europe ne sont pas chiffrés : c'est une limite de la recommandation |
+| *Axe d'organisation issu de la rétrospective* | *À compléter* |
+
+---
+
+## 3. Phrase de conclusion proposée
+
+> *« Nous avons appliqué à notre projet ce que nous recommandons à la Petite Maison de l'Épouvante : des critères fixés avant de choisir, des contrôles automatiques, et une amélioration continue nourrie par ce que nous avons mesuré, y compris quand cela contredisait nos hypothèses. »*
+
+---
+
+[← Déroulé de la soutenance et scénarios des démos](deroule-de-la-soutenance.md) · [Sommaire](../README.md) · [Répétition de la soutenance et préparation des questions →](repetitions-et-questions.md)

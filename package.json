@@ -1,0 +1,46 @@
+{
+  "name": "petite-maison-epouvante",
+  "private": true,
+  "description": "Monorepo de Petite Maison Epouvante",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --filter=@boutique/front",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:front": "turbo run test --filter=@boutique/front",
+    "test:back": "turbo run test --filter=@boutique/back",
+    "test:e2e": "node tools/lancer.mjs infra/ci/smoke-test.sh",
+    "securite": "npm run securite:secrets && npm run securite:sast && npm run securite:sca",
+    "securite:secrets": "node tools/lancer.mjs infra/ci/controles-securite.sh secrets",
+    "securite:sast": "node tools/lancer.mjs infra/ci/controles-securite.sh sast",
+    "securite:sca": "node tools/lancer.mjs infra/ci/controles-securite.sh sca",
+    "images:version": "node tools/lancer.mjs infra/ci/images.sh version",
+    "images:build": "docker compose -f infra/compose/compose.yaml build",
+    "images:scan": "node tools/lancer.mjs infra/ci/scan-images.sh",
+    "images:publier": "docker compose -f infra/compose/compose.yaml push",
+    "images:present": "node tools/lancer.mjs infra/ci/images.sh present",
+    "images:etiqueter": "node tools/lancer.mjs infra/ci/images.sh etiqueter",
+    "deployer": "node tools/lancer.mjs infra/ci/deployer.sh",
+    "boutique": "node tools/lancer.mjs tools/boutique.py",
+    "boutique:demarrer": "node tools/lancer.mjs tools/boutique.py demarrer",
+    "boutique:etat": "node tools/lancer.mjs tools/boutique.py etat",
+    "boutique:arreter": "node tools/lancer.mjs tools/boutique.py arreter",
+    "scenario:bus": "node tools/lancer.mjs tools/scenarios/bus.py --pause",
+    "scenario:passerelle": "node tools/lancer.mjs tools/scenarios/passerelle.py",
+    "scenario:mesures": "node tools/lancer.mjs tools/scenarios/mesures.py",
+    "scenario:pipeline-rouge": "node tools/lancer.mjs tools/demo/scenario.sh",
+    "k8s": "node tools/lancer.mjs infra/k8s/demo.sh",
+    "jenkins:demarrer": "docker compose -f infra/jenkins/docker-compose.yml up -d --build",
+    "jenkins:connecter": "node tools/lancer.mjs infra/jenkins/connecter-minikube.sh",
+    "jenkins:arreter": "docker compose -f infra/jenkins/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "turbo": "2.11.13"
+  },
+  "packageManager": "npm@11.19.1",
+  "engines": {
+    "node": "24.22.3"
+  }
+}

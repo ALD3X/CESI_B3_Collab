@@ -1,0 +1,72 @@
+# 2. Images : construites (version = empreinte Git de leurs sources), scannées, testées de bout en bout.
+# Sur feature/* et dev : intégration continue, rien n'est publié.
+# Sur accp : publiées UNE fois sur GHCR (ghcr.io/<compte>/<dépôt>/boutique-*:v-<version>).
+# Sur prod : les images de la version existent déjà, elles sont reprises sans reconstruction.
+# Appelé par pipeline.yml.
+name: Images
+
+on:
+  workflow_call:
+    inputs:
+      publier:
+        description: "Publier les images sur GHCR (push sur accp ou prod)"
+        type: boolean
+        default: false
+      promotion:
+        description: "Réutiliser les images déjà publiées pour cette version, si elles existent (accp, prod)"
+        type: boolean
+        default: false
+    outputs:
+      version:
+        description: "Version des images (empreinte Git de leurs sources)"
+        value: ${{ jobs.images.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  images:
+    name: "Build, scan, test de bout en bout, publication"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Version du code et registre
+        id: version
+        run: |
+          v=$(npm run -s images:version)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "REGISTRE=ghcr.io/${GITHUB_REPOSITORY,,}/" >> "$GITHUB_ENV"
+          echo "TAG=v-$v" >> "$GITHUB_ENV"
+          echo "### Version v-$v (branche ${GITHUB_REF_NAME})" >> "$GITHUB_STEP_SUMMARY"
+      - uses: docker/login-action@v4
+        if: inputs.publier || inputs.promotion
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Images déjà publiées pour cette version ? (reprise sans reconstruction)
+        id: present
+        if: inputs.promotion
+        run: |
+          if npm run -s images:present; then echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "Images v-${{ steps.version.outputs.version }} **promues sans reconstruction**." >> "$GITHUB_STEP_SUMMARY"
+          else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Build des 9 images
+        if: steps.present.outputs.ok != 'true'
+        run: npm run images:build
+      - name: Scan des images (bloquant si vulnérabilité CRITIQUE corrigeable)
+        if: steps.present.outputs.ok != 'true'
+        run: npm run images:scan
+      - name: Test de bout en bout (boutique complète, parcours client)
+        if: steps.present.outputs.ok != 'true'
+        run: npm run test:e2e -- boutique-ci
+      - name: Publication des images v-<version> sur GHCR
+        if: steps.present.outputs.ok != 'true' && inputs.publier
+        run: |
+          npm run images:publier
+          echo "Images publiées : \`${REGISTRE}boutique-*:${TAG}\`" >> "$GITHUB_STEP_SUMMARY"

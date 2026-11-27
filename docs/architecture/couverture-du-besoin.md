@@ -1,0 +1,118 @@
+# Vérification de la couverture du besoin
+
+> **Story :** US-03.3 · **Jira :** [SCRUM-22](https://maalsi25.atlassian.net/browse/SCRUM-22) · **Epic :** EPIC 03, Architecture macroscopique
+> **Responsable :** Membre C · **Binôme :** Membre A
+> **Entrées :** [US-01.1, synthèse du besoin](../cadrage/synthese-du-besoin.md) · [US-03.1, composants](composants-fonctionnels.md) · [US-03.2, architecture](architecture-macroscopique.md)
+
+**But :** rapprocher **chaque besoin** (F-xx) et **chaque contrainte** (C-xx) des composants de l'architecture, pour vérifier que rien n'est oublié et identifier les dépendances externes et les hypothèses.
+
+**Légende :** **●** = composant **responsable** · ○ = composant contributeur
+
+---
+
+## 1. Matrice de couverture des fonctionnalités
+
+### 1.1 Fonctionnalités explicites (F-01 à F-19)
+
+| ID | Fonctionnalité | Responsable(s) ● | Contributeurs ○ | Couvert |
+|---|---|---|---|---|
+| F-01 | Catalogue et vente de produits | SV-1, SV-2 | UI-1, SV-4, SV-3 | OK |
+| F-02 | Exclusivités web Evil Ed | SV-1 | SV-4 (stock web dédié) | OK |
+| F-03 | Vente de numéros numériques du fanzine | SV-1, SV-2 | SC-1 (attribution des droits) | OK |
+| F-04 | Liseuse intégrée | SC-1 | UI-1, TR-2, EN-3 | OK |
+| F-05 | Abonnement au fanzine (papier / numérique) | SV-6 | SV-3, SC-1, SV-5 (papier), SP-3 (relances) | OK |
+| F-06 | Paiement en ligne | SV-3 | IN-2, prestataire externe | OK |
+| F-07 | Recommandation de produits | SP-2 | SV-1 (événements), SV-2 (achats), UI-1 | OK |
+| F-08 | Notifications d'intérêt (nouvelle annonce) | SP-2, SP-3 | SM-1, SP-1, TR-1 | OK |
+| F-09 | Notifications comportementales (navigation) | SP-2, SP-3 | UI-1 (collecte), EN-3 (consentement) | voir écart E-1 |
+| F-10 | Paramétrage des notifications et recommandations | SP-1 | UI-1, SP-2, SP-3 | OK |
+| F-11 | Troc et don entre particuliers | SM-1 | UI-1, TR-2, SM-3 | OK |
+| F-12 | Liste d'articles recherchés | SM-1 | SP-2 | OK |
+| F-13 | Chat entre passionnés | SM-2 | UI-1, SM-3, EN-3 | OK |
+| F-14 | Modération | SM-3 | UI-2, SM-1, SM-2 | OK |
+| F-15 | Compte et authentification | EN-3, SP-1 | UI-1 | OK |
+| F-16 | Suivi des commandes | SV-2, SV-5 | IN-3, SP-3 | OK |
+| F-17 | Historique des achats | SV-2 | SC-1 (numéros achetés) | OK |
+| F-18 | News et articles publics | SC-2 | UI-1, EN-1 (cache) | OK |
+| F-19 | Back-office éditorial | SC-2 | UI-2 | OK |
+
+### 1.2 Fonctionnalités implicites (US-01.1, § 2.6)
+
+| Besoin | Responsable(s) ● | Contributeurs ○ | Couvert |
+|---|---|---|---|
+| Back-office de gestion (catalogue, commandes, utilisateurs) | UI-2 | SV-1, SV-2, EN-3, SM-3 | OK |
+| Synchronisation des stocks par magasin | SV-4, IN-1 | Gestion de stock existante | dépend de D-1 |
+| Intégration au SI existant (stock, fournisseurs, CRM) | IN-1 | SV-1, SV-4, SP-1 | dépend de D-1 |
+| Newsletter | SC-2, SP-3 | IN-4, SP-1 (consentement) | OK |
+| Logistique (préparation, expédition) | SV-5 | SV-4 (magasin expéditeur), IN-3 | OK |
+| Publication des numéros du fanzine | SC-1 | UI-2, TR-2 | OK |
+
+---
+
+## 2. Matrice de couverture des contraintes
+
+| ID | Contrainte | Réponse architecturale | Composants | Couvert |
+|---|---|---|---|---|
+| C-01 | RGAA | Design system accessible unique | UI-1, UI-2 | OK |
+| C-02 | Ergonomie, fluidité | Cache périphérique, recherche dédiée, traitements asynchrones | EN-1, SV-1, TR-1 | OK |
+| C-03 | Sécurité forte | Défense en profondeur, identité centralisée, zones de sécurité | EN-1, EN-2, EN-3, TR-4, TR-3 | OK |
+| C-04 | Hébergement en Europe | Tous les composants et toutes les données dans l'UE | Tous | (choix de l'hébergeur en EPIC 05/06) |
+| C-05 | SI hétérogène | Couche anticorruption | IN-1 | dépend de D-1 |
+| C-06 | Stock par magasin | Vue consolidée et réservation | SV-4 | OK |
+| C-07 | RGPD | Consentements, profilage isolé, durées de conservation | EN-3, SP-1, SP-2 | OK |
+| C-08 | PCI-DSS | Aucune donnée de carte stockée, délégation au prestataire | SV-3, IN-2 | OK |
+| C-09 | Multi-pays (Royaume-Uni) | Multilingue dans UI, prix multi-devises dans SV-1, transport international dans IN-3 | UI-1, SV-1, SV-3, IN-3 | voir écart E-2 |
+| C-10 | Pics de charge | Services sans état, mise à l'échelle indépendante | SV-1, SV-2, SV-4, EN-1 | OK |
+| C-11 | Petite équipe | Découpage raisonnable, services managés, automatisation | Toute l'architecture | OK |
+| C-12 | Protection des contenus numériques | Diffusion protégée, accès contrôlé aux fichiers | SC-1, TR-2 | OK |
+| C-13 | Contenus générés par les utilisateurs | Modération automatique et humaine, traçabilité | SM-3 | OK |
+| C-14 | Évolutivité V2/V3 | Emplacements prévus pour les enchères, la vidéo et la billetterie | Bus TR-1, adaptateurs | OK |
+
+---
+
+## 3. Résultat de la vérification
+
+**Tous les besoins majeurs ont au moins un composant responsable.** Aucun composant n'est sans besoin associé (pas de composant superflu).
+
+### Écarts relevés et actions
+
+| ID | Écart | Action corrective |
+|---|---|---|
+| **E-1** | Les **notifications comportementales** (F-09) supposent de collecter des événements de navigation **côté site client**. Ce flux n'était pas explicite dans US-03.1 | **Précisé :** UI-1 émet des événements de navigation vers SP-2, **uniquement si l'utilisateur y a consenti** (EN-3/SP-1). F-09 reste « souhaité » : à prioriser après le reste de la V1 |
+| **E-2** | **Ventes au Royaume-Uni** (C-09) : hors UE, avec des **droits de douane et une TVA spécifiques** non traités par un composant | **Hypothèse V1 :** SV-2 calcule les taxes selon le pays de livraison (règles paramétrables). Le transport international passe par IN-3. **À valider** avec la direction : vente au Royaume-Uni dès la V1 ou plus tard ? |
+| **E-3** | **Retours et remboursements** : non mentionnés dans le sujet, mais obligatoires en e-commerce (droit de rétractation de 14 jours) | Ajouté au périmètre de SV-2 (demande de retour) et SV-3 (remboursement) |
+| **E-4** | **Signalement par les utilisateurs** d'une annonce ou d'un message | Explicité dans SM-3 (file des signalements alimentée par UI-1) |
+
+---
+
+## 4. Dépendances externes
+
+| ID | Dépendance | Composant concerné | Risque si indisponible ou inadaptée | Statut |
+|---|---|---|---|---|
+| **D-1** | **Capacités d'échange des applications existantes** (stock, fournisseurs, CRM) : exposent-elles une interface d'échange ou seulement des exports de fichiers ? | IN-1, SV-4 | [Élevé] Sans échange automatisé, risque de **survente** ; il faudrait des synchronisations par fichiers planifiées | **À vérifier en priorité** avec le technicien |
+| **D-2** | **Prestataire de paiement** conforme PCI-DSS, de préférence européen | SV-3, IN-2 | [Élevé] Pas de vente possible | À choisir |
+| **D-3** | **Interface de La Poste** pour les étiquettes et le suivi | SV-5, IN-3 | [Moyen] Suivi des colis dégradé (saisie manuelle) | Contrat existant, intégration à construire |
+| **D-4** | **Service d'envoi d'emails** fiable, hébergé dans l'UE | SP-3, IN-4 | [Moyen] Pas de confirmations ni de notifications par email | À choisir |
+| **D-5** | **Hébergeur cloud européen** | Toute la plateforme | [Élevé] Bloquant | Le fournisseur cloud français actuel est candidat (EPIC 05/06) |
+| **D-6** | **Fichiers du fanzine** fournis par l'équipe PAO dans un format compatible avec la liseuse et accessible | SC-1 | [Moyen] Liseuse inutilisable ou non accessible | À cadrer avec la rédaction |
+| **D-7** | **Disponibilité du technicien** et des fondateurs ex-IT pour ouvrir les accès au SI existant | IN-1 | [Moyen] Retard des intégrations | À planifier |
+
+---
+
+## 5. Hypothèses retenues
+
+| ID | Hypothèse | Impact si fausse |
+|---|---|---|
+| H-1 | La plateforme **remplace** le site vitrine actuel (CMS) | Il faudrait maintenir deux sites et les synchroniser |
+| H-2 | Le site d'**Evil Ed** reste séparé en V1 | Ajout d'un lien ou d'une intégration de contenus |
+| H-3 | Les **caisses** des magasins mettent déjà à jour la gestion de stock | SV-4 devrait aussi s'intégrer aux caisses (une source de plus) |
+| H-4 | Les ventes web puisent dans les **stocks des magasins** et dans un **stock web dédié** pour les exclusivités | Revoir les règles de SV-4 |
+| H-5 | Le site est **bilingue FR/EN** pour la clientèle de Londres | Simplification de UI-1, SV-1 et IN-3 si FR uniquement |
+| H-6 | Le « magasin de Paris » cité dans le contexte correspond aux **bureaux parisiens** | Sans impact sur l'architecture |
+| H-7 | Les numéros du fanzine sont **téléversés manuellement** via le back-office (pas d'intégration avec la station PAO) | Faible : on pourrait automatiser plus tard |
+
+> **Prochaine étape :** la dépendance **D-1** et les hypothèses **E-2 / H-5** sont à valider en priorité avec la direction, car elles ont le plus d'impact sur le périmètre et la charge.
+
+---
+
+[← Architecture macroscopique](architecture-macroscopique.md) · [Sommaire](../README.md) · [Sélection des deux solutions CI/CD et des critères →](../cicd/candidats-et-criteres.md)
