@@ -10,7 +10,7 @@
 
 Le composant **TR-1 Bus d'événements** de l'architecture, sur le flux **« commande payée »**, **dans la boutique de démonstration** : un membre commande dans le front, le service Commandes (Spring Boot) publie l'événement, les services Notifications et Expédition le consomment, et la notification s'affiche **en direct** dans le navigateur.
 
-Les services utilisent **Spring Cloud Stream** : le code est **identique** pour RabbitMQ et Kafka. Le broker est choisi au démarrage (`python tools/boutique.py bus rabbit`). La comparaison porte donc sur le broker seul.
+Les services utilisent **Spring Cloud Stream** : le code est **identique** pour RabbitMQ et Kafka. Le broker est choisi au démarrage (`npm run boutique -- bus rabbit`). La comparaison porte donc sur le broker seul.
 
 ## 2. Topologie mise en place
 
@@ -40,10 +40,10 @@ flowchart LR
 
 | # | Action | Ce que la direction voit |
 |---|---|---|
-| 1 | `python tools/boutique.py bus rabbit` (lancé avant la soutenance) | La boutique tourne sur RabbitMQ, l'en-tête du site l'indique |
+| 1 | `npm run boutique -- bus rabbit` (lancé avant la soutenance) | La boutique tourne sur RabbitMQ, l'en-tête du site l'indique |
 | 2 | Commander dans la boutique (http://localhost:3000) | La notification « commande payée » arrive **en direct** |
 | 3 | Ouvrir la console http://localhost:15672 | Interface d'administration intégrée au broker |
-| 4 | `python tools/scenarios/bus.py --pause` | Étape par étape, les s'affichent |
+| 4 | `npm run scenario:bus` | Étape par étape, les vérifications s'affichent |
 | 5 | Pendant l'étape 2, montrer l'onglet *Queues* | La file `commandes.expedition` **accumule** 5 messages pendant la « panne », puis se vide au redémarrage |
 | 6 | Étape 3 | Le nouveau service « recommandations » ne reçoit **rien** du passé : ce qui a été consommé est supprimé |
 | 7 | Étape 4, onglet *Queues* | La file `commandes.notifications.dlq` contient le message invalide, disponible pour analyse |

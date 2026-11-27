@@ -39,8 +39,8 @@ jobs:
       REGISTRE_UTILISATEUR: ${{ github.actor }}
       REGISTRE_MOT_DE_PASSE: ${{ secrets.GHCR_LECTURE || secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -56,14 +56,14 @@ jobs:
         if: env.KUBECONFIG_CONTENU != ''
         run: mkdir -p ~/.kube && printf '%s' "$KUBECONFIG_CONTENU" > ~/.kube/config
       - name: Déploiement (le cluster tire les images sur GHCR), test de fumée, retour arrière en prod si échec
-        run: sh infra/ci/deployer.sh "${{ inputs.environnement }}"
+        run: npm run deployer -- "${{ inputs.environnement }}"
 
       - name: Étiquettes de l'environnement sur les images
         run: |
           case "${{ inputs.environnement }}" in
-            accp) sh infra/ci/images.sh etiqueter accp
-                  sh infra/ci/images.sh etiqueter "accp-${{ inputs.version }}"
+            accp) npm run images:etiqueter -- accp
+                  npm run images:etiqueter -- "accp-${{ inputs.version }}"
                   echo "Version **${{ inputs.version }}** recettée : prête pour la production." >> "$GITHUB_STEP_SUMMARY" ;;
-            prod) sh infra/ci/images.sh etiqueter prod
-                  sh infra/ci/images.sh etiqueter "prod-${{ inputs.version }}" ;;
+            prod) npm run images:etiqueter -- prod
+                  npm run images:etiqueter -- "prod-${{ inputs.version }}" ;;
           esac

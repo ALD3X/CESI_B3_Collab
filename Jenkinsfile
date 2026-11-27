@@ -1,5 +1,7 @@
 // Pipeline CI/CD de la boutique — Jenkins (job multi-branches)
-// Mêmes étapes, mêmes outils et mêmes scripts (infra/ci/*.sh) que les workflows de .github/workflows/.
+// Mêmes étapes et mêmes commandes que les workflows de .github/workflows/ : les scripts du package.json
+// (npm run …). Les contrôles qui tournent dans l'image de leur outil (gitleaks, Semgrep, Trivy) appellent
+// directement le script commun infra/ci/controles-securite.sh, ces images n'ayant pas Node.js.
 // Monorepo turbo : toutes les commandes partent de la racine du dépôt (apps/, infra/, tools/).
 //
 // Branches et environnements :
@@ -30,7 +32,7 @@ pipeline {
         stage('Version') {
             steps {
                 script {
-                    env.VERSION = sh(script: 'sh infra/ci/images.sh version', returnStdout: true).trim()
+                    env.VERSION = sh(script: 'npm run -s images:version', returnStdout: true).trim()
                     env.TAG = "v-${env.VERSION}"
                     env.PROJET_CI = "boutique-ci-${env.BRANCH_NAME.replaceAll('[^a-zA-Z0-9]', '').toLowerCase()}-${env.BUILD_NUMBER}"
                     currentBuild.description = "${env.BRANCH_NAME} · ${env.TAG}"
@@ -43,7 +45,7 @@ pipeline {
             parallel {
                 stage('Secrets (gitleaks)') {
                     agent { docker { image 'zricethezav/gitleaks:v8.24.3'; args '--entrypoint='; reuseNode true } }
-                    steps { sh 'gitleaks dir . --no-banner --redact' }
+                    steps { sh 'sh infra/ci/controles-securite.sh secrets' }
                 }
                 stage('Backend : tests + couverture') {
                     agent { docker { image 'maven:3.9-eclipse-temurin-25'; args '-v boutique-m2:/root/.m2'; reuseNode true } }
@@ -54,25 +56,22 @@ pipeline {
                     }
                 }
                 stage('Front : tests + couverture') {
-                    agent { docker { image 'node:26-alpine'; reuseNode true } }
+                    agent { docker { image 'node:24.22.3-alpine'; reuseNode true } }
                     // Espaces de travail npm du monorepo, tâche turbo « test » du front
-                    steps { sh 'npm ci && npx turbo run test --filter=@boutique/front' }
+                    steps { sh 'npm ci && npm run test:front' }
                 }
                 stage('SAST (Semgrep) + SCA (Trivy)') {
                     stages {
                         stage('SAST') {
                             agent { docker { image 'semgrep/semgrep:1.99.0'; reuseNode true } }
                             steps {
-                                sh '''semgrep scan --config p/java --config p/react --config p/secrets \
-                                      --severity ERROR --error --metrics off --exclude "**/target" \
-                                      --exclude node_modules .'''
+                                sh 'sh infra/ci/controles-securite.sh sast'
                             }
                         }
                         stage('SCA') {
                             agent { docker { image 'aquasec/trivy:0.65.0'; args '--entrypoint='; reuseNode true } }
                             steps {
-                                sh '''trivy fs --quiet --scanners vuln --severity CRITICAL --ignore-unfixed \
-                                      --skip-dirs node_modules --skip-dirs apps/front/node_modules --exit-code 1 .'''
+                                sh 'sh infra/ci/controles-securite.sh sca'
                             }
                         }
                     }
@@ -86,16 +85,16 @@ pipeline {
             when {
                 expression {
                     !(env.BRANCH_NAME in ['accp', 'prod'] &&
-                      sh(script: 'sh infra/ci/images.sh present', returnStatus: true) == 0)
+                      sh(script: 'npm run -s images:present', returnStatus: true) == 0)
                 }
             }
             steps {
-                sh 'docker compose build'
-                sh 'sh infra/ci/scan-images.sh'
-                sh 'sh infra/ci/smoke-test.sh "$PROJET_CI"'
+                sh 'npm run images:build'
+                sh 'npm run images:scan'
+                sh 'npm run test:e2e -- "$PROJET_CI"'
                 script {
                     if (env.BRANCH_NAME in ['accp', 'prod']) {      // dev : intégration continue, aucune publication
-                        sh 'docker compose push'
+                        sh 'npm run images:publier'
                     }
                 }
             }
@@ -105,9 +104,9 @@ pipeline {
         stage('Recette (accp)') {
             when { branch 'accp' }
             steps {
-                sh 'sh infra/ci/deployer.sh accp'
-                sh 'sh infra/ci/images.sh etiqueter accp'
-                sh 'sh infra/ci/images.sh etiqueter "accp-$VERSION"'
+                sh 'npm run deployer -- accp'
+                sh 'npm run images:etiqueter -- accp'
+                sh 'npm run images:etiqueter -- "accp-$VERSION"'
             }
         }
 
@@ -115,7 +114,7 @@ pipeline {
             when { branch 'prod' }
             stages {
                 stage('Contrôle : version recettée') {
-                    steps { sh 'sh infra/ci/images.sh present "accp-$VERSION"' }
+                    steps { sh 'npm run -s images:present -- "accp-$VERSION"' }
                 }
                 stage('Approbation') {
                     steps {
@@ -127,9 +126,9 @@ pipeline {
                 }
                 stage('Déploiement prod') {
                     steps {
-                        sh 'sh infra/ci/deployer.sh prod'      // retour arrière automatique en cas d'échec
-                        sh 'sh infra/ci/images.sh etiqueter prod'
-                        sh 'sh infra/ci/images.sh etiqueter "prod-$VERSION"'
+                        sh 'npm run deployer -- prod'      // retour arrière automatique en cas d'échec
+                        sh 'npm run images:etiqueter -- prod'
+                        sh 'npm run images:etiqueter -- "prod-$VERSION"'
                     }
                 }
             }

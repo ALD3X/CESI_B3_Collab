@@ -70,7 +70,7 @@ flowchart LR
 | 3 | Ouvrir le job images, étape « test de bout en bout » | La **boutique complète** démarre dans le runner : connexion, commande, notification reçue par le bus |
 | 4 | Ouvrir le run `accp` | Les 9 images sont **publiées une seule fois** sur GHCR, puis tirées par le cluster de recette |
 | 5 | Montrer *Packages* | Les images versionnées et leurs étiquettes (`v-<version>`, `accp-<version>`) |
-| 6 | Ouvrir une PR contenant la régression (`sh tools/demo/scenario.sh regression`) | Le **statut rouge s'affiche directement sur la PR** : on ne peut pas fusionner en confiance |
+| 6 | Ouvrir une PR contenant la régression (`npm run scenario:pipeline-rouge -- regression`) | Le **statut rouge s'affiche directement sur la PR** : on ne peut pas fusionner en confiance |
 
 ## 4. Contrôles du pipeline et comportement attendu
 

@@ -23,7 +23,7 @@ Ce domaine ne figure pas parmi les exemples de la consigne. Il complète la comp
 | **Briques ajoutées** | Spring Security (JWT), **Redis** (limitation de débit), Resilience4j (coupe-circuit, nouvelles tentatives) | Plugins intégrés `jwt` et `rate-limiting` |
 
 **Protocole équitable :**
-- les deux passerelles tournent **en même temps** dans la boutique, devant **les mêmes services** (identité, catalogue, commandes, notifications, expédition). Le front peut passer par l'une ou l'autre (`python tools/boutique.py passerelle kong`) ;
+- les deux passerelles tournent **en même temps** dans la boutique, devant **les mêmes services** (identité, catalogue, commandes, notifications, expédition). Le front peut passer par l'une ou l'autre (`npm run boutique -- passerelle kong`) ;
 - **mêmes règles :** catalogue et connexion publics, commandes protégées par un JWT HS256 émis par le service identité (signature, expiration, émetteur), 10 requêtes par seconde sur les commandes ;
 - mêmes ressources : chaque passerelle est limitée à **2 CPU et 512 Mio** ;
 - même scénario automatisé (12 vérifications) et mêmes mesures.
@@ -48,7 +48,7 @@ Ce domaine ne figure pas parmi les exemples de la consigne. Il complète la comp
 
 ## 3. Résultats mesurés sur la boutique
 
-### 3.1 Scénario identique (`python tools/scenarios/passerelle.py spring|kong`, 27/11/2026)
+### 3.1 Scénario identique (`npm run scenario:passerelle -- spring|kong`, 27/11/2026)
 
 | Étape | Spring Cloud Gateway | Kong 3.9 |
 |---|---|---|
@@ -78,7 +78,7 @@ Ces constats ne sont pas théoriques : chacun a provoqué une erreur réelle pen
 
 > **Leçon pour la politique de qualité :** les deux produits fonctionnent, mais **aucun n'est sûr avec ses réglages par défaut**. Les délais, le cache DNS et le coupe-circuit doivent être des **paramètres revus en architecture** et vérifiés par un test de panne dans le pipeline.
 
-### 3.3 Mesures (`python tools/scenarios/mesures.py`)
+### 3.3 Mesures (`npm run scenario:mesures`)
 
 | Mesure | Spring Cloud Gateway | Kong 3.9 |
 |---|---|---|

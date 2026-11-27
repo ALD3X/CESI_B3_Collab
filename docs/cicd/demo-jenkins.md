@@ -15,7 +15,7 @@
 | Configuration du serveur | `infra/jenkins/casc.yaml` | **Jenkins Configuration as Code** : compte admin, sécurité, et **création automatique du job** (Job DSL). Aucun clic de configuration |
 | Lancement | `infra/jenkins/docker-compose.yml` | Jenkins (port 8090) + **registre d'images local** (équivalent de GHCR) |
 
-Lancement : `cd infra/jenkins && docker compose up -d --build`, puis http://localhost:8090 (`admin` / `admin`). Voir le [README du dépôt](../../README.md), section 4.
+Lancement : `npm run jenkins:demarrer`, puis http://localhost:8090 (`admin` / `admin`). Voir le [README du dépôt](../../README.md), section 4.
 
 ---
 
@@ -52,7 +52,7 @@ flowchart LR
 | 2 | Ouvrir le job `petite-maison-boutique`, run vert lancé avant la soutenance | **Étapes, branche parallèle, durées** (*Stage View* / *Pipeline Overview*) |
 | 3 | *Test Result* | **23 tests backend**, historique et tendance |
 | 4 | `curl localhost:5000/v2/_catalog` | **Résultat** : les 9 images `build-N` sont publiées |
-| 5 | `sh tools/demo/scenario.sh secret` → commit | Jenkins **détecte seul** le commit (polling) et l'étape secrets passe au **rouge**. Build et publication sont **sautés** |
+| 5 | `npm run scenario:pipeline-rouge -- secret` → commit | Jenkins **détecte seul** le commit (polling) et l'étape secrets passe au **rouge**. Build et publication sont **sautés** |
 
 ---
 
@@ -93,7 +93,7 @@ Les autres branches parallèles vont à leur terme : le développeur reçoit **t
 | Jenkins ne démarre pas | Vidéo d'un run complet + captures de *Stage View* et des résultats de tests |
 | Run trop long en direct | Build vert lancé avant la présentation. En direct, on ne montre que le scénario rouge `secret` (gitleaks échoue en quelques secondes) |
 
-**Checklist de la veille :** `docker compose up -d --build`, un build complet vert, captures d'écran, vidéo d'1 à 2 min, puis `docker compose stop` (sans `-v`, pour garder le cache).
+**Checklist de la veille :** `npm run jenkins:demarrer`, un build complet vert, captures d'écran, vidéo d'1 à 2 min, puis `npm run jenkins:arreter` (les volumes sont conservés, donc le cache aussi).
 
 ---
 

@@ -8,7 +8,7 @@
 
 ## 1. Cas d'usage démontré
 
-**Strictement le même** que pour RabbitMQ ([US-05.2](demo-rabbitmq.md)) : l'événement « commande payée » de la boutique, publié par Commandes et consommé par Notifications et Expédition. Les services et le scénario sont **identiques** : on bascule simplement le broker (`python tools/boutique.py bus kafka`, environ 30 s, sans reconstruire d'image).
+**Strictement le même** que pour RabbitMQ ([US-05.2](demo-rabbitmq.md)) : l'événement « commande payée » de la boutique, publié par Commandes et consommé par Notifications et Expédition. Les services et le scénario sont **identiques** : on bascule simplement le broker (`npm run boutique -- bus kafka`, environ 30 s, sans reconstruire d'image).
 
 ## 2. Topologie mise en place
 
@@ -40,9 +40,9 @@ flowchart LR
 
 | # | Action | Ce que la direction voit |
 |---|---|---|
-| 1 | `python tools/boutique.py bus kafka` (lancé avant la soutenance) | Même boutique, autre broker : l'en-tête du site affiche « Kafka » |
+| 1 | `npm run boutique -- bus kafka` (lancé avant la soutenance) | Même boutique, autre broker : l'en-tête du site affiche « Kafka » |
 | 2 | Ouvrir kafka-ui http://localhost:8081 | Topics, partitions, messages, groupes et leurs positions |
-| 3 | `python tools/scenarios/bus.py --pause` | Les mêmes étapes, les mêmes |
+| 3 | `npm run scenario:bus` | Les mêmes étapes, les mêmes vérifications |
 | 4 | Étape 2, onglet *Consumers* | Le groupe `expedition` a un **retard** (*lag*) de 5, qui retombe à 0 au redémarrage |
 | 5 | Étape 3 | Le nouveau groupe `recommandations` **relit toutes les commandes passées** : c'est la différence clé avec RabbitMQ |
 | 6 | Onglet *Topics → Messages* | Les messages sont **toujours là** après lecture |

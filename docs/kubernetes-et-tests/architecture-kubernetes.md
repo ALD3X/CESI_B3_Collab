@@ -2,7 +2,7 @@
 
 > **Story :** US-06.1 · **Jira :** [SCRUM-31](https://maalsi25.atlassian.net/browse/SCRUM-31) · **Epic :** EPIC 06, Environnement managé et stratégie de tests
 > **Responsable :** Membre D · **Binôme :** Membre B
-> **Entrées :** [US-03.2, architecture](../architecture/architecture-macroscopique.md) · [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) · **Démo :** [boutique sur Kubernetes](../../infra/k8s/) (`sh infra/k8s/demo.sh`)
+> **Entrées :** [US-03.2, architecture](../architecture/architecture-macroscopique.md) · [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) · **Démo :** [boutique sur Kubernetes](../../infra/k8s/) (`npm run k8s`)
 
 **But :** expliquer à la direction **comment l'environnement managé exécute la plateforme**, quels sont ses composants internes, et pourquoi il répond aux exigences de disponibilité et de scalabilité.
 

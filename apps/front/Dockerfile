@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Contexte de build : la racine du monorepo (espaces de travail npm, un seul package-lock.json).
 # Seuls les fichiers utiles entrent dans le contexte : voir Dockerfile.dockerignore.
-FROM node:26-alpine AS build
+FROM node:24.22.3-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 COPY apps/front/package.json apps/front/

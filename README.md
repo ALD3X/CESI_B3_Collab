@@ -18,47 +18,50 @@ Projet collaboratif CESI : la démarche de développement de la plateforme `peti
 | [`docs/`](docs) | Documentation du projet |
 | [`.github/workflows/`](.github/workflows), [`Jenkinsfile`](Jenkinsfile) | Les deux pipelines CI/CD |
 
-Le dépôt est un **monorepo turbo** : `apps/front` et `apps/back` sont des espaces de travail npm, et turbo lance leurs tâches avec un cache.
+Le dépôt est un **monorepo turbo**. Toutes les commandes passent par les **scripts du [`package.json`](package.json)** (`npm run …`), sur le poste comme dans les deux pipelines.
 
 ---
 
 ## Prérequis
 
 - Docker Desktop (8 Go de mémoire conseillés)
-- Node.js 26 LTS et JDK 25 LTS
+- Node.js 24.22.3 LTS (voir `.nvmrc`) et JDK 25 LTS
 - Python 3.11 ou plus récent
+- Git (sous Windows, son shell sert à lancer les scripts)
 - Pour Kubernetes : `minikube` et `kubectl`
-
-Toutes les commandes se lancent **depuis la racine du dépôt**.
 
 ---
 
 ## Démarrage rapide
 
 ```bash
-npm install                        # une fois
-npx turbo run test                 # tests du front et du backend
-python tools/boutique.py demarrer  # toute la boutique dans Docker
+npm install                  # une fois
+npm test                     # tests du front et du backend
+npm run boutique:demarrer    # toute la boutique dans Docker
 ```
 
 Ouvrir **http://localhost:3000** et se connecter avec `morticia@petitemaison.fr` / `Epouvante2026!`.
 
 ```bash
-python tools/boutique.py etat      # bus et passerelle utilisés
-python tools/boutique.py arreter   # --effacer pour supprimer aussi les données
+npm run boutique:etat        # bus et passerelle utilisés
+npm run boutique:arreter     # ajouter « -- --effacer » pour supprimer aussi les données
 ```
 
 ---
 
-## Démonstrations
+## Scripts
 
-| Démo | Commandes |
+| Domaine | Scripts (`npm run …`) |
 |---|---|
-| **Bus d'événements** : RabbitMQ ou Kafka | `python tools/boutique.py bus rabbit` (ou `kafka`), puis `python tools/scenarios/bus.py --pause` |
-| **Passerelle d'API** : Spring Cloud Gateway ou Kong | `python tools/scenarios/passerelle.py spring --pause` (ou `kong`) |
-| **Mesures** des deux comparaisons | `python tools/scenarios/mesures.py` |
-| **Kubernetes** | `sh infra/k8s/demo.sh preparer`, puis `deployer`, `auto-reparation`, `cloisonnement` |
-| **Pipeline rouge** | `sh tools/demo/scenario.sh regression` (ou `secret`), commit, puis `sh tools/demo/scenario.sh reset` |
+| **Développement** | `dev` (front en mode développement), `build` |
+| **Tests** | `test` (front + backend), `test:front`, `test:back`, `test:e2e` (boutique complète, parcours client) |
+| **Sécurité** | `securite` (les trois), `securite:secrets` (gitleaks), `securite:sast` (Semgrep), `securite:sca` (Trivy) |
+| **Images** | `images:version`, `images:build`, `images:scan`, `images:publier`, `images:present`, `images:etiqueter` |
+| **Déploiement** | `deployer -- accp`, `deployer -- prod` |
+| **Boutique locale** | `boutique:demarrer`, `boutique:etat`, `boutique:arreter`, `boutique -- bus kafka`, `boutique -- passerelle kong` |
+| **Démos** | `scenario:bus`, `scenario:passerelle -- spring` (ou `kong`), `scenario:mesures`, `scenario:pipeline-rouge -- regression` (ou `secret`, `reset`) |
+| **Kubernetes** | `k8s -- preparer`, puis `deployer`, `auto-reparation`, `cloisonnement`, `nettoyer` |
+| **Jenkins** | `jenkins:demarrer` (http://localhost:8090, `admin` / `admin`), `jenkins:connecter` (accès au cluster), `jenkins:arreter` |
 
 Consoles : RabbitMQ http://localhost:15672 (`demo` / `demo`) · Kafka http://localhost:8081 · Kong http://localhost:8002
 
@@ -66,7 +69,7 @@ Consoles : RabbitMQ http://localhost:15672 (`demo` / `demo`) · Kafka http://loc
 
 ## CI/CD
 
-Les deux pipelines font les mêmes étapes, avec les mêmes scripts (`infra/ci/`).
+Les deux pipelines font les mêmes étapes, avec les mêmes scripts npm.
 
 | Branche | Ce que fait le pipeline |
 |---|---|
@@ -76,8 +79,6 @@ Les deux pipelines font les mêmes étapes, avec les mêmes scripts (`infra/ci/`
 
 `accp` et `prod` n'acceptent que des **pull requests** : GitHub refuse tout push direct sur ces branches.
 
-Faire avancer une version :
-
 ```bash
 gh pr create --base accp --head dev --fill && gh pr merge --merge    # vers la recette
 gh pr create --base prod --head accp --fill && gh pr merge --merge   # vers la production
@@ -86,13 +87,5 @@ gh pr create --base prod --head accp --fill && gh pr merge --merge   # vers la p
 Mettre en production :
 - **GitHub Actions** : `gh workflow run mise-en-production.yml --ref prod`, puis approbation dans l'onglet Actions
 - **Jenkins** : bouton « Mettre en production » sur le build `prod`
-
-Lancer Jenkins en local :
-
-```bash
-cd infra/jenkins
-docker compose up -d --build   # http://localhost:8090 (admin / admin)
-sh connecter-minikube.sh       # accès au cluster Kubernetes local
-```
 
 Détails : [branches et environnements](docs/cicd/branches-et-environnements.md).

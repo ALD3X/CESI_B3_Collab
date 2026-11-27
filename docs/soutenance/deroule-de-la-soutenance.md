@@ -106,17 +106,17 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 | Temps | Action à l'écran | Message oral |
 |---|---|---|
 | 0:00 | http://localhost:8090, job multi-branches **créé par le code** | « Le même pipeline, sur notre propre serveur, hébergeable en Europe. Il découvre seul les branches dev, accp et prod. » |
-| 0:20 | **En direct :** `sh tools/demo/scenario.sh secret`, puis commit sur `dev` | « Un développeur commite la clé d'API du prestataire de paiement… » |
+| 0:20 | **En direct :** `npm run scenario:pipeline-rouge -- secret`, puis commit sur `dev` | « Un développeur commite la clé d'API du prestataire de paiement… » |
 | 0:50 | gitleaks rouge, publication sautée | « …la livraison est bloquée. C'est la quality gate de sécurité. » |
 | 1:10 | Build `prod` arrêté sur l'étape **Approbation** : clic sur « Mettre en production » | « En production, Jenkins attend un humain. Si le test de fumée échoue après le déploiement, retour arrière automatique. » |
-| 1:45 | `sh tools/demo/scenario.sh reset` | « Le prix à payer : un serveur et des plugins à exploiter. » |
+| 1:45 | `npm run scenario:pipeline-rouge -- reset` | « Le prix à payer : un serveur et des plugins à exploiter. » |
 
 ### Démo 3 : RabbitMQ (C, 1:30)
 
 | Temps | Action à l'écran | Message oral |
 |---|---|---|
 | 0:00 | **La boutique** (http://localhost:3000) : une commande, la notification arrive en direct | « La commande payée part vers les notifications et l'expédition. » |
-| 0:15 | `python tools/scenarios/bus.py --pause`, étapes 1 et 2 | « L'expédition tombe en panne pendant 5 commandes… elle redémarre et rattrape tout : aucune perte. » |
+| 0:15 | `npm run scenario:bus`, étapes 1 et 2 | « L'expédition tombe en panne pendant 5 commandes… elle redémarre et rattrape tout : aucune perte. » |
 | 0:45 | Étape 3 : **0** | « Un nouveau service ne peut pas relire le passé : ce qui est consommé est supprimé. » |
 | 1:05 | Étape 4 et file `commandes.notifications.dlq` | « Le message invalide est isolé par le broker lui-même. » |
 
@@ -124,7 +124,7 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 
 | Temps | Action à l'écran | Message oral |
 |---|---|---|
-| 0:00 | `python tools/boutique.py bus kafka` (fait avant), puis `python tools/scenarios/bus.py --pause` | « Même boutique, même code des services, autre broker : la bascule prend 30 secondes. » |
+| 0:00 | `npm run boutique -- bus kafka` (fait avant), puis `npm run scenario:bus` | « Même boutique, même code des services, autre broker : la bascule prend 30 secondes. » |
 | 0:20 | kafka-ui, onglet *Consumers* | « Kafka mémorise la position de chaque service dans un journal. » |
 | 0:40 | Étape 3 : **tout l'historique** | « Différence clé : un nouveau service, comme les recommandations de la V2, relit tout l'historique. » |
 | 1:00 | Étape 4, puis `docker stats` | « La file de rebut est fournie par le framework. Et Kafka consomme 2 à 6 fois plus de mémoire. » |
@@ -133,9 +133,9 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 
 | Temps | Action à l'écran | Message oral |
 |---|---|---|
-| 0:00 | La boutique, puis `python tools/boutique.py passerelle kong` et rechargement : l'en-tête affiche « Kong » | « Les deux passerelles tournent en même temps devant les mêmes services. Pour le client, rien ne change. » |
-| 0:20 | `python tools/scenarios/passerelle.py spring --pause`, étape 3 | « Un membre envoie une rafale de 30 requêtes : il est limité. Un autre membre juste après : 5 sur 5, la limite est par membre. » |
-| 0:50 | `python tools/scenarios/passerelle.py kong --pause`, étape 3 | « Même rafale avec Kong : l'autre membre est bloqué, 0 sur 5. Le quota est partagé par toute l'application : pendant une vente flash, un robot bloquerait tous les clients. » |
+| 0:00 | La boutique, puis `npm run boutique -- passerelle kong` et rechargement : l'en-tête affiche « Kong » | « Les deux passerelles tournent en même temps devant les mêmes services. Pour le client, rien ne change. » |
+| 0:20 | `npm run scenario:passerelle -- spring --pause`, étape 3 | « Un membre envoie une rafale de 30 requêtes : il est limité. Un autre membre juste après : 5 sur 5, la limite est par membre. » |
+| 0:50 | `npm run scenario:passerelle -- kong --pause`, étape 3 | « Même rafale avec Kong : l'autre membre est bloqué, 0 sur 5. Le quota est partagé par toute l'application : pendant une vente flash, un robot bloquerait tous les clients. » |
 | 1:20 | Étape 4 (service commandes arrêté) | « Panne d'un service : Spring répond en 1 seconde avec un message lisible par le front. Kong, avec ses réglages par défaut, faisait attendre 75 secondes. » |
 | 1:40 | Tableau des mesures | « Kong a ses atouts : 53 lignes de configuration contre 195, un seul conteneur, une latence quasi nulle. » |
 
@@ -144,8 +144,8 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 | Temps | Action à l'écran | Message oral |
 |---|---|---|
 | 0:00 | `kubectl get pods -A -o wide` (déjà déployé) | « La boutique en production : 3 zones, 2 nœuds, et la recette à côté, dans ses propres zones. » |
-| 0:15 | `sh infra/k8s/demo.sh auto-reparation` | « Je supprime une instance du catalogue : le controller manager la recrée, l'autre instance sert le trafic entre-temps. » |
-| 0:50 | `sh infra/k8s/demo.sh cloisonnement` | « Contourner la passerelle, atteindre la base, ou passer de la recette à la production : bloqué. » |
+| 0:15 | `npm run k8s -- auto-reparation` | « Je supprime une instance du catalogue : le controller manager la recrée, l'autre instance sert le trafic entre-temps. » |
+| 0:50 | `npm run k8s -- cloisonnement` | « Contourner la passerelle, atteindre la base, ou passer de la recette à la production : bloqué. » |
 
 ---
 
@@ -166,19 +166,19 @@ Les autres complètent si besoin. Chacun doit pouvoir défendre l'ensemble des c
 
 ### La veille (J-1)
 
-- [ ] `python tools/boutique.py demarrer`, puis `python tools/boutique.py bus kafka` et retour à `rabbit` : toutes les images sont en cache, démo **sans Internet**.
-- [ ] Un **run vert** sur GitHub Actions **et** sur Jenkins (`cd infra/jenkins && docker compose up -d --build`).
-- [ ] `sh infra/k8s/demo.sh preparer` puis `deployer` (environ 8 min).
+- [ ] `npm run boutique:demarrer`, puis `npm run boutique -- bus kafka` et retour à `rabbit` : toutes les images sont en cache, démo **sans Internet**.
+- [ ] Un **run vert** sur GitHub Actions **et** sur Jenkins (`npm run jenkins:demarrer`).
+- [ ] `npm run k8s -- preparer` puis `deployer` (environ 8 min).
 - [ ] Lancer `tools/scenarios/bus.py` sur les deux bus et `tools/scenarios/passerelle.py` sur les deux passerelles : **7/7, 7/7, 12/12 et 11/12** attendus.
 - [ ] Enregistrer une **vidéo de secours** de 1 à 2 min par démo (6 vidéos), copiées sur 2 ordinateurs et une clé USB.
 - [ ] Vérifier la **taille de police** du terminal (≥ 18 pt) et le **mode sombre/clair** lisible au vidéoprojecteur.
 
 ### Une heure avant (H-1)
 
-- [ ] Démarrer Docker Desktop, puis `python tools/boutique.py demarrer --bus rabbit --sans-build` et Jenkins (`docker compose up -d` dans `infra/jenkins/`).
+- [ ] Démarrer Docker Desktop, puis `npm run boutique:demarrer -- --bus rabbit --sans-build` et Jenkins (`npm run jenkins:demarrer`).
 - [ ] `minikube start -p boutique` (le cluster garde les déploiements de la veille).
 - [ ] **20 min avant :** lancer un build de la branche `prod` dans Jenkins (*Build Now*) : il doit attendre l'approbation pendant la démo de B (la demande expire au bout de 30 min).
-- [ ] Remettre la boutique sur la passerelle Spring (`python tools/boutique.py passerelle spring`) avant la démo de D.
+- [ ] Remettre la boutique sur la passerelle Spring (`npm run boutique -- passerelle spring`) avant la démo de D.
 - [ ] Ouvrir les onglets dans l'ordre de passage : GitHub Actions, Jenkins (:8090), boutique (:3000), console RabbitMQ (:15672), kafka-ui (:8081). Ouvrir 4 terminaux nommés (CI, BUS, PASSERELLE, K8S).
 - [ ] Passer une commande dans la boutique **une fois à blanc** (la notification doit s'afficher).
 - [ ] Désactiver les notifications et la mise en veille de l'ordinateur.
