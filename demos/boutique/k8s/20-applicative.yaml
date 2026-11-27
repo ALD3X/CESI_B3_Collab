@@ -1,0 +1,436 @@
+# Zone applicative : passerelle et services métier Spring Boot (images du pipeline CI/CD).
+# Même gabarit durci pour chaque service : non-root, système de fichiers en lecture seule, sondes, limites.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: passerelle
+  namespace: zone-applicative
+  labels: { app: passerelle, composant: EN-2 }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }   # aucune coupure pendant une mise à jour
+  selector:
+    matchLabels: { app: passerelle }
+  template:
+    metadata:
+      labels: { app: passerelle, composant: EN-2, exposition: passerelle }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:          # répartir les instances sur des nœuds différents
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector: { matchLabels: { app: passerelle } }
+      containers:
+        - name: passerelle
+          image: boutique-passerelle:latest
+          imagePullPolicy: IfNotPresent
+          lifecycle:                      # laisse 5 s pour retirer le pod du Service avant l'arrêt (zéro 500)
+            preStop:
+              sleep: { seconds: 5 }
+          env:
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: jwt, key: JWT_SECRET } } }
+            - { name: REDIS_HOTE, value: "redis.zone-donnees" }
+          ports: [{ containerPort: 8080, name: http }]
+          startupProbe:                   # laisse à la JVM le temps de démarrer
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe:                 # le Service n'envoie du trafic qu'aux instances prêtes
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 5
+          livenessProbe:                  # le kubelet redémarre une instance bloquée
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: passerelle, namespace: zone-applicative }
+spec:
+  selector: { app: passerelle }
+  ports: [{ port: 8080, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identite
+  namespace: zone-applicative
+  labels: { app: identite, composant: EN-3 }
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }   # aucune coupure pendant une mise à jour
+  selector:
+    matchLabels: { app: identite }
+  template:
+    metadata:
+      labels: { app: identite, composant: EN-3, exposition: interne }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:          # répartir les instances sur des nœuds différents
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector: { matchLabels: { app: identite } }
+      containers:
+        - name: identite
+          image: boutique-identite:latest
+          imagePullPolicy: IfNotPresent
+          lifecycle:                      # laisse 5 s pour retirer le pod du Service avant l'arrêt (zéro 500)
+            preStop:
+              sleep: { seconds: 5 }
+          env:
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: jwt, key: JWT_SECRET } } }
+          ports: [{ containerPort: 8080, name: http }]
+          startupProbe:                   # laisse à la JVM le temps de démarrer
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe:                 # le Service n'envoie du trafic qu'aux instances prêtes
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 5
+          livenessProbe:                  # le kubelet redémarre une instance bloquée
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: identite, namespace: zone-applicative }
+spec:
+  selector: { app: identite }
+  ports: [{ port: 8080, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogue
+  namespace: zone-applicative
+  labels: { app: catalogue, composant: SV-1 }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }   # aucune coupure pendant une mise à jour
+  selector:
+    matchLabels: { app: catalogue }
+  template:
+    metadata:
+      labels: { app: catalogue, composant: SV-1, exposition: interne }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:          # répartir les instances sur des nœuds différents
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector: { matchLabels: { app: catalogue } }
+      containers:
+        - name: catalogue
+          image: boutique-catalogue:latest
+          imagePullPolicy: IfNotPresent
+          lifecycle:                      # laisse 5 s pour retirer le pod du Service avant l'arrêt (zéro 500)
+            preStop:
+              sleep: { seconds: 5 }
+          env:
+            - { name: DB_URL, value: "jdbc:postgresql://postgres.zone-donnees:5432/catalogue" }
+          ports: [{ containerPort: 8080, name: http }]
+          startupProbe:                   # laisse à la JVM le temps de démarrer
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe:                 # le Service n'envoie du trafic qu'aux instances prêtes
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 5
+          livenessProbe:                  # le kubelet redémarre une instance bloquée
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: catalogue, namespace: zone-applicative }
+spec:
+  selector: { app: catalogue }
+  ports: [{ port: 8080, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commandes
+  namespace: zone-applicative
+  labels: { app: commandes, composant: SV-2 }
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }   # aucune coupure pendant une mise à jour
+  selector:
+    matchLabels: { app: commandes }
+  template:
+    metadata:
+      labels: { app: commandes, composant: SV-2, exposition: interne }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:          # répartir les instances sur des nœuds différents
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector: { matchLabels: { app: commandes } }
+      containers:
+        - name: commandes
+          image: boutique-commandes:latest
+          imagePullPolicy: IfNotPresent
+          lifecycle:                      # laisse 5 s pour retirer le pod du Service avant l'arrêt (zéro 500)
+            preStop:
+              sleep: { seconds: 5 }
+          env:
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: jwt, key: JWT_SECRET } } }
+            - { name: BUS, value: "rabbit" }
+            - { name: RABBITMQ_HOTE, value: "rabbitmq.zone-donnees" }
+            - { name: DB_URL, value: "jdbc:postgresql://postgres.zone-donnees:5432/commandes" }
+            - { name: CATALOGUE_URL, value: "http://catalogue:8080" }
+          ports: [{ containerPort: 8080, name: http }]
+          startupProbe:                   # laisse à la JVM le temps de démarrer
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe:                 # le Service n'envoie du trafic qu'aux instances prêtes
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 5
+          livenessProbe:                  # le kubelet redémarre une instance bloquée
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: commandes, namespace: zone-applicative }
+spec:
+  selector: { app: commandes }
+  ports: [{ port: 8080, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifications
+  namespace: zone-applicative
+  labels: { app: notifications, composant: SP-3 }
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }   # aucune coupure pendant une mise à jour
+  selector:
+    matchLabels: { app: notifications }
+  template:
+    metadata:
+      labels: { app: notifications, composant: SP-3, exposition: interne }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:          # répartir les instances sur des nœuds différents
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector: { matchLabels: { app: notifications } }
+      containers:
+        - name: notifications
+          image: boutique-notifications:latest
+          imagePullPolicy: IfNotPresent
+          lifecycle:                      # laisse 5 s pour retirer le pod du Service avant l'arrêt (zéro 500)
+            preStop:
+              sleep: { seconds: 5 }
+          env:
+            - { name: BUS, value: "rabbit" }
+            - { name: RABBITMQ_HOTE, value: "rabbitmq.zone-donnees" }
+          ports: [{ containerPort: 8080, name: http }]
+          startupProbe:                   # laisse à la JVM le temps de démarrer
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe:                 # le Service n'envoie du trafic qu'aux instances prêtes
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 5
+          livenessProbe:                  # le kubelet redémarre une instance bloquée
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: notifications, namespace: zone-applicative }
+spec:
+  selector: { app: notifications }
+  ports: [{ port: 8080, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: expedition
+  namespace: zone-applicative
+  labels: { app: expedition, composant: SV-5 }
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }   # aucune coupure pendant une mise à jour
+  selector:
+    matchLabels: { app: expedition }
+  template:
+    metadata:
+      labels: { app: expedition, composant: SV-5, exposition: interne }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:          # répartir les instances sur des nœuds différents
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector: { matchLabels: { app: expedition } }
+      containers:
+        - name: expedition
+          image: boutique-expedition:latest
+          imagePullPolicy: IfNotPresent
+          lifecycle:                      # laisse 5 s pour retirer le pod du Service avant l'arrêt (zéro 500)
+            preStop:
+              sleep: { seconds: 5 }
+          env:
+            - { name: BUS, value: "rabbit" }
+            - { name: RABBITMQ_HOTE, value: "rabbitmq.zone-donnees" }
+          ports: [{ containerPort: 8080, name: http }]
+          startupProbe:                   # laisse à la JVM le temps de démarrer
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe:                 # le Service n'envoie du trafic qu'aux instances prêtes
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 5
+          livenessProbe:                  # le kubelet redémarre une instance bloquée
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: expedition, namespace: zone-applicative }
+spec:
+  selector: { app: expedition }
+  ports: [{ port: 8080, targetPort: http }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: catalogue
+  namespace: zone-applicative
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: catalogue }
+  minReplicas: 2
+  maxReplicas: 6                          # pics : festival, sortie du fanzine, exclusivités Evil Ed
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: catalogue
+  namespace: zone-applicative
+spec:
+  minAvailable: 1                         # une maintenance de nœud ne coupe jamais toutes les instances
+  selector:
+    matchLabels: { app: catalogue }

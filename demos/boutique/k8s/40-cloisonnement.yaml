@@ -1,0 +1,45 @@
+# Cloisonnement réseau entre zones (NetworkPolicy) : chaque zone n'accepte que les flux prévus.
+#   zone-publique  → passerelle (zone-applicative) → services internes → zone-donnees
+# Un appel direct à un service interne depuis une autre zone est bloqué.
+
+# Passerelle : seul point d'entrée de la zone applicative, appelée par le front
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: passerelle-depuis-zone-publique
+  namespace: zone-applicative
+spec:
+  podSelector: { matchLabels: { exposition: passerelle } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { zone: publique } }
+        - namespaceSelector: { matchLabels: { zone: applicative } }
+      ports: [{ port: 8080 }]
+---
+# Services internes : appelables uniquement depuis la zone applicative (passerelle, autres services)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: services-internes
+  namespace: zone-applicative
+spec:
+  podSelector: { matchLabels: { exposition: interne } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { zone: applicative } }
+      ports: [{ port: 8080 }]
+---
+# Données : accessibles uniquement depuis la zone applicative
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: donnees-depuis-zone-applicative
+  namespace: zone-donnees
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { zone: applicative } }

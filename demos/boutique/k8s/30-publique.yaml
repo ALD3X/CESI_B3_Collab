@@ -1,0 +1,58 @@
+# Zone publique : le front (NGINX non-root), seul composant exposé hors du cluster.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: front
+  namespace: zone-publique
+  labels: { app: front, composant: UI }
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: front }
+  template:
+    metadata:
+      labels: { app: front, composant: UI }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: front
+          image: boutique-front:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: PASSERELLE_HOTE, value: "passerelle.zone-applicative:8080" }
+            - { name: PASSERELLE_NOM, value: "Spring Cloud Gateway (Kubernetes)" }
+            - { name: BUS, value: "RabbitMQ" }
+          ports: [{ containerPort: 8080, name: http }]
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { cpu: 300m, memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:                   # seuls répertoires inscriptibles pour NGINX
+            - { name: tmp, mountPath: /tmp }
+            - { name: conf, mountPath: /etc/nginx/conf.d }
+            - { name: cache, mountPath: /var/cache/nginx }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+        - { name: conf, emptyDir: {} }
+        - { name: cache, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: front, namespace: zone-publique }
+spec:
+  type: NodePort                          # en production : Ingress controller + TLS (US-06.1)
+  selector: { app: front }
+  ports: [{ port: 80, targetPort: http, nodePort: 30080 }]

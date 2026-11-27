@@ -1,0 +1,118 @@
+# Zone données : PostgreSQL (une base par service), RabbitMQ (bus d'événements), Redis (limitation de débit).
+# En production, ces trois composants sont des services managés hébergés dans l'UE (US-08.1).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: zone-donnees
+  labels: { app: postgres }
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata:
+      labels: { app: postgres }
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: postgres
+          image: boutique-postgres:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: POSTGRES_PASSWORD, value: postgres }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports: [{ containerPort: 5432, name: pg }]
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "postgres", "-d", "commandes"] }
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          volumeMounts:
+            - { name: donnees, mountPath: /var/lib/postgresql/data }
+  volumeClaimTemplates:               # volume persistant : les données survivent au redémarrage du pod
+    - metadata: { name: donnees }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: postgres, namespace: zone-donnees }
+spec:
+  selector: { app: postgres }
+  ports: [{ port: 5432, targetPort: pg }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: zone-donnees
+  labels: { app: rabbitmq }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: rabbitmq } }
+  template:
+    metadata:
+      labels: { app: rabbitmq }
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.13-management
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: RABBITMQ_DEFAULT_USER, value: demo }
+            - { name: RABBITMQ_DEFAULT_PASS, value: demo }
+          ports:
+            - { containerPort: 5672, name: amqp }
+            - { containerPort: 15672, name: console }
+          # Sonde TCP et non « rabbitmq-diagnostics » : lancée en root avant le broker, cette commande créait
+          # le fichier .erlang.cookie avec le mauvais propriétaire et RabbitMQ ne démarrait plus (constaté).
+          readinessProbe:
+            tcpSocket: { port: amqp }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: rabbitmq, namespace: zone-donnees }
+spec:
+  selector: { app: rabbitmq }
+  ports:
+    - { port: 5672, targetPort: amqp, name: amqp }
+    - { port: 15672, targetPort: console, name: console }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: zone-donnees
+  labels: { app: redis }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: redis } }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 6379, name: redis }]
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: redis, namespace: zone-donnees }
+spec:
+  selector: { app: redis }
+  ports: [{ port: 6379, targetPort: redis }]
