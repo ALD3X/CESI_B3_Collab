@@ -115,8 +115,8 @@ Les deux pipelines enchaînent **les mêmes étapes avec les mêmes outils et le
 ```
 toutes les branches : secrets ‖ backend (≥ 70 %) ‖ front (≥ 70 %) ‖ SAST + SCA
 feature/*  → build des 9 images → scan → test de bout en bout
-dev        → idem + publication v-<version> (intégration continue, aucun déploiement)
-accp       → promotion des MÊMES images → déploiement recette (Kubernetes accp-*) → recette validée
+dev        → idem (intégration continue uniquement : aucune publication, aucun déploiement)
+accp       → idem + publication v-<version> → déploiement recette (Kubernetes accp-*) → recette validée
 prod       → version recettée ? → APPROBATION → déploiement progressif (prod-*) → test de fumée → retour arrière si échec
 ```
 
@@ -125,7 +125,7 @@ prod       → version recettée ? → APPROBATION → déploiement progressif (
 | `accp` | Kubernetes, namespaces `accp-*` | `kubectl -n accp-publique port-forward svc/front 3002:80` |
 | `prod` | Kubernetes, namespaces `prod-*` | `kubectl -n prod-publique port-forward svc/front 3001:80` |
 
-**GitHub Actions** : chaque push sur `dev`, `accp` ou `prod` lance la chaîne de la branche (onglet **Actions**, puis **Environments**). Les images sont publiées sur GHCR, puis **le cluster de recette ou de production les tire lui-même** (secret d'accès au registre créé à chaque déploiement). La mise en production se déclenche par le workflow **Mise en production** sur la branche `prod` (`gh workflow run mise-en-production.yml --ref prod`), réservé aux utilisateurs de la variable `APPROBATEURS_PROD`. Sans secret `KUBECONFIG`, le cluster est créé à la volée dans le runner (kind).
+**GitHub Actions** : chaque push sur `dev`, `accp` ou `prod` lance la chaîne de la branche (onglet **Actions**, puis **Environments**). Les images sont publiées sur GHCR à partir de `accp` uniquement, puis **le cluster de recette ou de production les tire lui-même** (secret d'accès au registre créé à chaque déploiement). La mise en production se déclenche par le workflow **Mise en production** sur la branche `prod` (`gh workflow run mise-en-production.yml --ref prod`), réservé aux utilisateurs de la variable `APPROBATEURS_PROD`. Sans secret `KUBECONFIG`, le cluster est créé à la volée dans le runner (kind).
 
 **Jenkins** (100 % local, configuré par le code) :
 

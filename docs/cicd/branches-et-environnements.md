@@ -15,16 +15,15 @@ flowchart LR
     D["dev<br/><small>branche par défaut<br/>intégration</small>"] -- "PR dev → accp" --> A
     A["accp<br/><small>recette<br/>iso-production</small>"] -- "PR accp → prod" --> P
     P["prod<br/><small>production</small>"]
-    D -. "build unique<br/>v-version" .-> I[("Registre<br/>d'images")]
-    I -. "promotion<br/>sans reconstruction" .-> A
-    I -. "promotion<br/>version recettée" .-> P
+    A -. "publication unique<br/>v-version" .-> I[("Registre<br/>d'images")]
+    I -. "reprise sans reconstruction<br/>version recettée" .-> P
 ```
 
 | Branche | Qui y écrit | Ce que fait le pipeline | Environnement |
 |---|---|---|---|
 | `feature/*` | Le développeur | Contrôles qualité et sécurité, build des images, scan, test de bout en bout. **Aucune publication** | Aucun |
-| **`dev`** (par défaut) | Fusion des PR de fonctionnalités | **Intégration continue** : tout ce qui précède, puis **publication des images `v-<version>`**. **Aucun déploiement** | Aucun |
-| **`accp`** | PR `dev → accp` | Contrôles qualité, puis **promotion des images de dev** (pas de reconstruction), déploiement, **recette** automatique. Si elle réussit, la version reçoit l'étiquette `accp-<version>` | **accp** : Kubernetes, namespaces `accp-*`, topologie identique à la production avec 1 instance par service |
+| **`dev`** (par défaut) | Fusion des PR de fonctionnalités | **Intégration continue uniquement** : les mêmes contrôles que sur `feature/*`. **Aucune publication, aucun déploiement** | Aucun |
+| **`accp`** | PR `dev → accp` | Contrôles qualité, build, scan et test de bout en bout, puis **publication unique des images `v-<version>`**, déploiement, **recette** automatique. Si elle réussit, la version reçoit l'étiquette `accp-<version>` | **accp** : Kubernetes, namespaces `accp-*`, topologie identique à la production avec 1 instance par service |
 | **`prod`** | PR `accp → prod` | Contrôle que la version **a été recettée**, **approbation manuelle**, déploiement progressif, test de fumée, **retour arrière automatique** en cas d'échec | **prod** : Kubernetes, namespaces `prod-*`, 2 instances, mise à l'échelle automatique |
 
 **Version d'une livraison :** c'est l'empreinte Git des **sources des images** (`apps/`, `infra/kong`, `infra/postgres`, ainsi que `package.json` et `package-lock.json` du monorepo). Modifier la documentation, les scripts de CI ou les manifestes Kubernetes ne change donc pas la version. Une fusion `dev → accp → prod` qui n'apporte aucune modification garde **la même version**. Le pipeline sait donc qu'il s'agit des mêmes images.
@@ -35,19 +34,19 @@ flowchart LR
 
 | Étiquette d'image | Posée par | Signification |
 |---|---|---|
-| `v-<version>` | Pipeline `dev` (ou toute branche dont la version n'existe pas encore) | Image construite, scannée, testée de bout en bout |
+| `v-<version>` | Pipeline `accp` (ou `prod`, si la version n'a jamais été publiée) | Image construite, scannée, testée de bout en bout |
 | `accp`, `accp-<version>` | Recette réussie | Version **recettée** : seule une version portant cette étiquette peut aller en production |
 | `prod`, `prod-<version>` | Mise en production réussie | Version en production. Un tag Git `livraison-<date>-<version>` est aussi posé (GitHub Actions) |
 
 **Pourquoi :** une image reconstruite pour la production ne serait pas **exactement** celle qui a été recettée (dépendances téléchargées à nouveau, image de base mise à jour entre-temps). La promotion garantit que la production exécute **les octets testés en recette**.
 
-**Correctif urgent :** une correction faite directement sur `accp` produit une version inconnue. Le pipeline reconstruit alors les images (avec scan et test de bout en bout), puis les promeut. Rien n'arrive en production sans être passé par la recette.
+**Pourquoi publier sur `accp` et pas sur `dev` :** `dev` reçoit de nombreuses fusions par jour ; publier chacune remplirait le registre d'images que personne ne déploiera. Sur `accp`, chaque version publiée est une **candidate à la production**. Rien n'arrive en production sans être passé par la recette : la branche `prod` ne fait que reprendre une version portant l'étiquette `accp-<version>`.
 
 ---
 
 ## 3. Les environnements
 
-La branche `dev` fait de l'**intégration continue** : elle construit, teste et publie les images, mais ne déploie rien. Le **déploiement continu** commence en recette.
+La branche `dev` fait uniquement de l'**intégration continue** : elle construit et teste les images, mais ne publie et ne déploie rien. La **publication** et le **déploiement continu** commencent en recette.
 
 | | accp (recette) | prod |
 |---|---|---|
@@ -68,7 +67,7 @@ Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seu
 | Mécanisme | GitHub Actions | Jenkins |
 |---|---|---|
 | Une chaîne par branche | Orchestrateur `pipeline.yml` : déclencheurs `push` et `pull_request` sur `dev`, `accp`, `prod`, appels conditionnés par `github.ref_name` vers des workflows réutilisables | Job **multi-branches** qui découvre `dev`, `accp`, `prod` et `feature/*` ; étapes conditionnées par `when { branch … }` |
-| Environnements | **Environnements GitHub** `dev`, `accp`, `production` : historique des déploiements, secrets propres à chaque environnement | Étapes dédiées, cluster cible configuré une fois (`connecter-minikube.sh`) |
+| Environnements | **Environnements GitHub** `accp`, `production` : historique des déploiements, secrets propres à chaque environnement | Étapes dédiées, cluster cible configuré une fois (`connecter-minikube.sh`) |
 | Cible de déploiement | Avec le secret `KUBECONFIG` de l'environnement : le vrai cluster. Sans : un **cluster éphémère** (kind) créé dans le runner. Dans les deux cas, **le cluster tire les images sur GHCR** grâce à un secret d'accès au registre | Le cluster Kubernetes local (minikube) et le Docker de l'hôte |
 | Approbation de la production | Relecteurs obligatoires de l'environnement `production` (offre Pro ou dépôt public). **Dans notre dépôt privé gratuit**, mesure compensatoire : workflow `mise-en-production.yml`, déclenché à la main et réservé à la liste `APPROBATEURS_PROD` | Étape **`input`** native, réservée à l'utilisateur `admin`, expiration au bout de 30 min |
 | Tests des applications | `turbo run test` (front et backend, cache turbo) | Front : `turbo run test` ; backend : la même commande Maven dans l'image Maven |

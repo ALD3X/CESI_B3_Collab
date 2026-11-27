@@ -29,7 +29,7 @@ Le pipeline est découpé en **workflows réutilisables** (`workflow_call`) : ch
 |---|---|---|
 | [`pipeline.yml`](../../.github/workflows/pipeline.yml) | **Orchestrateur** : déclencheurs (`push` sur `dev`, `accp`, `prod`, `pull_request`) et enchaînement des étapes selon la branche | GitHub (push, PR) |
 | [`controles.yml`](../../.github/workflows/controles.yml) | **1. Qualité et sécurité du code** : secrets, backend, front, SAST + SCA, en parallèle | `pipeline.yml` |
-| [`images.yml`](../../.github/workflows/images.yml) | **2. Images** : build unique, scan, test de bout en bout, publication sur **GHCR** ; promotion sans reconstruction sur `accp` et `prod` | `pipeline.yml` |
+| [`images.yml`](../../.github/workflows/images.yml) | **2. Images** : build, scan, test de bout en bout ; publication sur **GHCR** uniquement sur `accp`, reprise sans reconstruction sur `prod` | `pipeline.yml` |
 | [`deploiement.yml`](../../.github/workflows/deploiement.yml) | **3. Déploiement** en recette (`accp`) ou en production (`prod`) à partir des images de GHCR, test de fumée, étiquettes | `pipeline.yml`, `mise-en-production.yml` |
 | [`recette-validee.yml`](../../.github/workflows/recette-validee.yml) | Contrôle : seule une version recettée (`accp-<version>`) peut aller en production | `pipeline.yml`, `mise-en-production.yml` |
 | [`mise-en-production.yml`](../../.github/workflows/mise-en-production.yml) | **Mise en production** déclenchée à la main par un approbateur, puis tag Git de livraison | Un approbateur (`workflow_dispatch`) |
@@ -40,8 +40,8 @@ flowchart LR
     subgraph C["controles.yml"]
       S["secrets"] ~~~ B["backend"] ~~~ F["front"] ~~~ A["sast-sca"]
     end
-    C --> I["images.yml<br/>build → scan → test de bout en bout<br/>→ publication GHCR"]
-    I -- "dev" --> D["fin : images publiées<br/>aucun déploiement"]
+    C --> I["images.yml<br/>build → scan → test de bout en bout<br/>→ publication GHCR (accp)"]
+    I -- "feature/*, dev" --> D["fin : intégration continue<br/>rien n'est publié"]
     I -- "accp" --> R["deploiement.yml<br/>recette"]
     I -- "prod" --> V["recette-validee.yml"]
     M(["approbateur"]) --> MP["mise-en-production.yml"] --> V2["recette-validee.yml"] --> DP["deploiement.yml<br/>prod"]
@@ -54,7 +54,7 @@ flowchart LR
 | **Workflows réutilisables** (`workflow_call`) | Un fichier par étape, appelé avec des paramètres (`environnement`, `version`) ; `secrets: inherit` transmet les secrets de l'environnement |
 | **Jobs** | Les 4 contrôles tournent **en parallèle** sur des runners distincts |
 | **`needs:`** | Les images ne sont construites que si les 4 contrôles sont verts : c'est la **quality gate** |
-| **Environnements** | `dev`, `accp`, `production` : historique des déploiements, secrets propres (`KUBECONFIG`, `GHCR_LECTURE`) |
+| **Environnements** | `accp`, `production` : historique des déploiements, secrets propres (`KUBECONFIG`, `GHCR_LECTURE`) |
 | **Actions du marketplace** | `actions/checkout`, `actions/setup-java` et `actions/setup-node` (avec **cache Maven et npm**), `actions/upload-artifact`, `docker/login-action`, `helm/kind-action` |
 | **`permissions:`** | Lecture seule par défaut. `packages: write` est accordé **uniquement** aux jobs qui publient ou étiquettent les images (moindre privilège) |
 | **`secrets.GITHUB_TOKEN`** | Jeton éphémère généré par GitHub pour publier et lire sur GHCR. **Aucun secret à créer** pour la démo |
@@ -66,10 +66,10 @@ flowchart LR
 | # | Action | Ce que la direction voit |
 |---|---|---|
 | 1 | Montrer `.github/workflows/` dans le dépôt | Le pipeline est **du code**, découpé par étape, versionné et relu comme le reste |
-| 2 | Ouvrir le run `dev` lancé avant la soutenance | Graphe des **4 contrôles parallèles**, puis des images publiées. Sur `dev`, **aucun déploiement** : c'est l'intégration continue |
+| 2 | Ouvrir le run `dev` lancé avant la soutenance | Graphe des **4 contrôles parallèles**, puis des images construites et testées. Sur `dev`, **rien n'est publié ni déployé** : c'est l'intégration continue |
 | 3 | Ouvrir le job images, étape « test de bout en bout » | La **boutique complète** démarre dans le runner : connexion, commande, notification reçue par le bus |
-| 4 | Montrer *Packages* | Les 9 images versionnées sont publiées sur GHCR |
-| 5 | Ouvrir le run `accp` | Les **mêmes images** sont promues sans reconstruction, puis tirées de GHCR par le cluster de recette |
+| 4 | Ouvrir le run `accp` | Les 9 images sont **publiées une seule fois** sur GHCR, puis tirées par le cluster de recette |
+| 5 | Montrer *Packages* | Les images versionnées et leurs étiquettes (`v-<version>`, `accp-<version>`) |
 | 6 | Ouvrir une PR contenant la régression (`sh tools/demo/scenario.sh regression`) | Le **statut rouge s'affiche directement sur la PR** : on ne peut pas fusionner en confiance |
 
 ## 4. Contrôles du pipeline et comportement attendu
