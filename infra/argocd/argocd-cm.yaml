@@ -1,0 +1,6 @@
+# Ajouts à la configuration d'Argo CD (fusionnés dans le ConfigMap argocd-cm)
+data:
+  # Compte technique de Jenkins : accès par jeton d'API uniquement (pas de connexion à l'interface)
+  accounts.jenkins: apiKey
+  # Fréquence à laquelle Argo CD compare le cluster à Git
+  timeout.reconciliation: 60s

@@ -1,0 +1,47 @@
+# Applications Argo CD : l'état souhaité de chaque environnement est dans Git.
+#   boutique-accp : branche accp, surcouche infra/k8s/overlays/accp, synchronisation AUTOMATIQUE
+#                   (tout écart avec Git est corrigé : selfHeal)
+#   boutique-prod : branche prod, surcouche infra/k8s/overlays/prod, synchronisation MANUELLE,
+#                   déclenchée par Jenkins après l'approbation de la mise en production
+# La version des images (v-<version>) est transmise par Jenkins (paramètre kustomize.images de l'application).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: boutique-accp
+  namespace: argocd
+spec:
+  project: boutique
+  source:
+    repoURL: https://github.com/ALD3X/CESI_B3_Collab.git
+    targetRevision: accp
+    path: infra/k8s/overlays/accp
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: accp-publique
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 3
+      backoff: { duration: 10s, factor: 2, maxDuration: 2m }
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: boutique-prod
+  namespace: argocd
+spec:
+  project: boutique
+  source:
+    repoURL: https://github.com/ALD3X/CESI_B3_Collab.git
+    targetRevision: prod
+    path: infra/k8s/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-publique
+  # Pas de synchronisation automatique : la production ne change qu'après approbation
+  syncPolicy:
+    retry:
+      limit: 3
+      backoff: { duration: 10s, factor: 2, maxDuration: 2m }

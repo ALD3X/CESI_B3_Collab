@@ -1,0 +1,21 @@
+# Projet Argo CD de la boutique : ce qu'Argo CD a le droit de déployer, et où.
+# Seul le dépôt du projet est une source autorisée, et seules les zones de recette et de production
+# sont des destinations autorisées.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: boutique
+  namespace: argocd
+spec:
+  description: Boutique de La Petite Maison de l'Épouvante (recette et production)
+  sourceRepos:
+    - https://github.com/ALD3X/CESI_B3_Collab.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "accp-*"
+    - server: https://kubernetes.default.svc
+      namespace: "prod-*"
+  # Ressources sans namespace autorisées : uniquement les namespaces des zones
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

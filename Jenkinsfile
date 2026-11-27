@@ -4,12 +4,16 @@
 // directement le script commun infra/ci/controles-securite.sh, ces images n'ayant pas Node.js.
 // Monorepo turbo : toutes les commandes partent de la racine du dépôt (apps/, infra/, tools/).
 //
+// Jenkins fait l'intégration continue ; le DÉPLOIEMENT est confié à Argo CD (GitOps, modèle « pull ») :
+// Jenkins transmet la version des images à Argo CD, qui applique dans le cluster l'état décrit dans Git.
+// Jenkins n'a aucun accès au cluster, seulement un jeton Argo CD limité au projet boutique.
+//
 // Branches et environnements :
 //   feature/*, dev : intégration continue UNIQUEMENT (contrôles, images, scan, test de bout en bout),
 //                    aucune publication, aucun déploiement
-//   accp      : images construites UNE fois et publiées (v-<version>), déployées en recette (Kubernetes), recette validée
-//   prod      : version recettée uniquement, APPROBATION manuelle, déploiement progressif (Kubernetes),
-//               test de fumée, retour arrière automatique
+//   accp      : images construites UNE fois et publiées (v-<version>), déployées en recette par Argo CD, recette validée
+//   prod      : version recettée uniquement, APPROBATION manuelle, synchronisation par Argo CD,
+//               test de fumée, retour arrière par l'historique d'Argo CD
 pipeline {
     agent any
 
@@ -25,7 +29,6 @@ pipeline {
         TRIVY_IMAGE    = 'aquasec/trivy:0.65.0'
         REGISTRE       = 'localhost:5000/'          // registre local (équivalent de GHCR)
         CHARGER_IMAGES = 'minikube:boutique'        // les images sont chargées dans les nœuds du cluster local
-        KUBECONFIG     = '/var/jenkins_home/.kube/config'
     }
 
     stages {
@@ -104,7 +107,7 @@ pipeline {
         stage('Recette (accp)') {
             when { branch 'accp' }
             steps {
-                sh 'npm run deployer -- accp'
+                sh 'npm run deployer:argocd -- accp'
                 sh 'npm run images:etiqueter -- accp'
                 sh 'npm run images:etiqueter -- "accp-$VERSION"'
             }
@@ -126,7 +129,7 @@ pipeline {
                 }
                 stage('Déploiement prod') {
                     steps {
-                        sh 'npm run deployer -- prod'      // retour arrière automatique en cas d'échec
+                        sh 'npm run deployer:argocd -- prod'      // retour arrière par Argo CD en cas d'échec
                         sh 'npm run images:etiqueter -- prod'
                         sh 'npm run images:etiqueter -- "prod-$VERSION"'
                     }

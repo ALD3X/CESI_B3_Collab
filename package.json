@@ -23,6 +23,7 @@
     "images:present": "node tools/lancer.mjs infra/ci/images.sh present",
     "images:etiqueter": "node tools/lancer.mjs infra/ci/images.sh etiqueter",
     "deployer": "node tools/lancer.mjs infra/ci/deployer.sh",
+    "deployer:argocd": "node tools/lancer.mjs infra/ci/deployer-argocd.sh",
     "boutique": "node tools/lancer.mjs tools/boutique.py",
     "boutique:demarrer": "node tools/lancer.mjs tools/boutique.py demarrer",
     "boutique:etat": "node tools/lancer.mjs tools/boutique.py etat",
@@ -32,6 +33,8 @@
     "scenario:mesures": "node tools/lancer.mjs tools/scenarios/mesures.py",
     "scenario:pipeline-rouge": "node tools/lancer.mjs tools/demo/scenario.sh",
     "k8s": "node tools/lancer.mjs infra/k8s/demo.sh",
+    "argocd:installer": "node tools/lancer.mjs infra/argocd/installer.sh",
+    "argocd:ouvrir": "kubectl --context boutique -n argocd port-forward svc/argocd-server 8443:443",
     "jenkins:demarrer": "docker compose -f infra/jenkins/docker-compose.yml up -d --build",
     "jenkins:connecter": "node tools/lancer.mjs infra/jenkins/connecter-minikube.sh",
     "jenkins:arreter": "docker compose -f infra/jenkins/docker-compose.yml down"

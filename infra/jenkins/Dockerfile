@@ -5,9 +5,10 @@ USER root
 # Client Docker + Docker Compose : les étapes du pipeline pilotent Docker via le socket de l'hôte.
 COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=docker:27-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
-# kubectl : déploiements accp et prod sur Kubernetes
-RUN curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.34.1/bin/linux/amd64/kubectl \
-    && chmod +x /usr/local/bin/kubectl
+# CLI Argo CD : Jenkins ne déploie pas lui-même, il transmet la version des images à Argo CD (GitOps).
+# Aucun kubectl ni accès au cluster : seul un jeton Argo CD limité au projet boutique.
+RUN curl -fsSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v3.6.3/argocd-linux-amd64 \
+    && chmod +x /usr/local/bin/argocd
 # Node.js 24.22.3 (LTS) : les étapes du pipeline passent par les scripts du package.json (npm run …)
 COPY --from=node:24.22.3-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 COPY --from=node:24.22.3-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules

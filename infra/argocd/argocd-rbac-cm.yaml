@@ -1,0 +1,11 @@
+# Droits dans Argo CD (fusionnés dans le ConfigMap argocd-rbac-cm)
+# Jenkins ne reçoit AUCUN accès au cluster Kubernetes : uniquement le droit de consulter, mettre à jour
+# (version des images) et synchroniser les applications du projet boutique, et de lire ce projet.
+data:
+  policy.default: ""
+  policy.csv: |
+    p, role:ci, applications, get, boutique/*, allow
+    p, role:ci, applications, update, boutique/*, allow
+    p, role:ci, applications, sync, boutique/*, allow
+    p, role:ci, projects, get, boutique, allow
+    g, jenkins, role:ci

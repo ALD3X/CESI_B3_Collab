@@ -15,8 +15,8 @@ etape() { printf '\n━━━ %s\n' "$1"; }
 
 case "${1:-}" in
   preparer)
-    etape "Cluster local : 1 nœud control plane + 1 nœud worker (la veille : environ 5 min)"
-    minikube start -p "$PROFIL" --nodes 2 --driver docker --memory 3500 --cpus 2 --addons metrics-server
+    etape "Cluster local : 1 nœud control plane + 1 nœud worker, 6 Go et 4 processeurs chacun (recette, production et Argo CD)"
+    minikube start -p "$PROFIL" --nodes 2 --driver docker --memory 6144 --cpus 4 --addons metrics-server
     etape "Images de la boutique (celles du pipeline CI/CD) chargées dans le cluster"
     (cd "$ICI/../.." && docker compose -f infra/compose/compose.yaml build -q)
     for image in $IMAGES; do
