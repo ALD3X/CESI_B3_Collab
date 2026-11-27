@@ -10,7 +10,7 @@ Projet collaboratif CESI : documentation du projet et **boutique de démonstrati
 │   ├── front/          React 18 + Vite, tests Vitest, image NGINX non-root          (@boutique/front)
 │   └── back/           Spring Boot 4 / Java 25, Maven multi-modules + Maven Wrapper (@boutique/back)
 ├── infra/
-│   ├── compose/        compose.yaml (boutique complète), dev.yml (environnement dev), ci.yml (tests CI)
+│   ├── compose/        compose.yaml (boutique complète), ci.yml (tests CI)
 │   ├── ci/             scripts communs aux deux pipelines : images, scan, test de bout en bout, déploiement
 │   ├── k8s/            base Kustomize + surcouches accp et prod (3 zones, cloisonnement réseau)
 │   ├── jenkins/        Jenkins configuré par le code (JCasC, job multi-branches) + registre local
@@ -115,14 +115,13 @@ Les deux pipelines enchaînent **les mêmes étapes avec les mêmes outils et le
 ```
 toutes les branches : secrets ‖ backend (≥ 70 %) ‖ front (≥ 70 %) ‖ SAST + SCA
 feature/*  → build des 9 images → scan → test de bout en bout
-dev        → idem + publication v-<version> → déploiement dev (Docker Compose, :3100)
+dev        → idem + publication v-<version> (intégration continue, aucun déploiement)
 accp       → promotion des MÊMES images → déploiement recette (Kubernetes accp-*) → recette validée
 prod       → version recettée ? → APPROBATION → déploiement progressif (prod-*) → test de fumée → retour arrière si échec
 ```
 
 | Branche | Environnement | Accès |
 |---|---|---|
-| `dev` (par défaut) | Docker Compose, projet `boutique-dev` | http://localhost:3100 |
 | `accp` | Kubernetes, namespaces `accp-*` | `kubectl -n accp-publique port-forward svc/front 3002:80` |
 | `prod` | Kubernetes, namespaces `prod-*` | `kubectl -n prod-publique port-forward svc/front 3001:80` |
 

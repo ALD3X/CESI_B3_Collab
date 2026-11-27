@@ -23,14 +23,14 @@ La boutique est poussée dans **son propre dépôt GitHub** (README, section 4).
 
 ## 2. Structure du pipeline
 
-Le pipeline est découpé en **workflows réutilisables** (`workflow_call`) : chaque fichier a une seule responsabilité, et les étapes de déploiement sont écrites une seule fois pour les trois environnements.
+Le pipeline est découpé en **workflows réutilisables** (`workflow_call`) : chaque fichier a une seule responsabilité, et les étapes de déploiement sont écrites une seule fois pour la recette et la production.
 
 | Fichier | Rôle | Appelé par |
 |---|---|---|
 | [`pipeline.yml`](../../.github/workflows/pipeline.yml) | **Orchestrateur** : déclencheurs (`push` sur `dev`, `accp`, `prod`, `pull_request`) et enchaînement des étapes selon la branche | GitHub (push, PR) |
 | [`controles.yml`](../../.github/workflows/controles.yml) | **1. Qualité et sécurité du code** : secrets, backend, front, SAST + SCA, en parallèle | `pipeline.yml` |
 | [`images.yml`](../../.github/workflows/images.yml) | **2. Images** : build unique, scan, test de bout en bout, publication sur **GHCR** ; promotion sans reconstruction sur `accp` et `prod` | `pipeline.yml` |
-| [`deploiement.yml`](../../.github/workflows/deploiement.yml) | **3. Déploiement** d'un environnement (`dev`, `accp` ou `prod`) à partir des images de GHCR, test de fumée, étiquettes | `pipeline.yml`, `mise-en-production.yml` |
+| [`deploiement.yml`](../../.github/workflows/deploiement.yml) | **3. Déploiement** en recette (`accp`) ou en production (`prod`) à partir des images de GHCR, test de fumée, étiquettes | `pipeline.yml`, `mise-en-production.yml` |
 | [`recette-validee.yml`](../../.github/workflows/recette-validee.yml) | Contrôle : seule une version recettée (`accp-<version>`) peut aller en production | `pipeline.yml`, `mise-en-production.yml` |
 | [`mise-en-production.yml`](../../.github/workflows/mise-en-production.yml) | **Mise en production** déclenchée à la main par un approbateur, puis tag Git de livraison | Un approbateur (`workflow_dispatch`) |
 
@@ -41,7 +41,7 @@ flowchart LR
       S["secrets"] ~~~ B["backend"] ~~~ F["front"] ~~~ A["sast-sca"]
     end
     C --> I["images.yml<br/>build → scan → test de bout en bout<br/>→ publication GHCR"]
-    I -- "dev" --> D["deploiement.yml<br/>dev"]
+    I -- "dev" --> D["fin : images publiées<br/>aucun déploiement"]
     I -- "accp" --> R["deploiement.yml<br/>recette"]
     I -- "prod" --> V["recette-validee.yml"]
     M(["approbateur"]) --> MP["mise-en-production.yml"] --> V2["recette-validee.yml"] --> DP["deploiement.yml<br/>prod"]
@@ -66,7 +66,7 @@ flowchart LR
 | # | Action | Ce que la direction voit |
 |---|---|---|
 | 1 | Montrer `.github/workflows/` dans le dépôt | Le pipeline est **du code**, découpé par étape, versionné et relu comme le reste |
-| 2 | Ouvrir le run `dev` lancé avant la soutenance | Graphe des **4 contrôles parallèles**, puis des images et du déploiement dev |
+| 2 | Ouvrir le run `dev` lancé avant la soutenance | Graphe des **4 contrôles parallèles**, puis des images publiées. Sur `dev`, **aucun déploiement** : c'est l'intégration continue |
 | 3 | Ouvrir le job images, étape « test de bout en bout » | La **boutique complète** démarre dans le runner : connexion, commande, notification reçue par le bus |
 | 4 | Montrer *Packages* | Les 9 images versionnées sont publiées sur GHCR |
 | 5 | Ouvrir le run `accp` | Les **mêmes images** sont promues sans reconstruction, puis tirées de GHCR par le cluster de recette |

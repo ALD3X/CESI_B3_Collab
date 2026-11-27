@@ -3,7 +3,7 @@
 > **Story :** US-04.5 · **Epic :** EPIC 04, CI/CD · **Entrées :** [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) · [US-04.4, choix CI/CD](comparaison-et-choix.md) · [US-06.3, tests dans le pipeline](../kubernetes-et-tests/tests-dans-le-pipeline.md)
 > **Mise en œuvre :** [`.github/workflows/`](../../.github/workflows/) · [`Jenkinsfile`](../../Jenkinsfile) · scripts communs [`infra/ci/images.sh`](../../infra/ci/images.sh) et [`infra/ci/deployer.sh`](../../infra/ci/deployer.sh) · surcouches [`infra/k8s/overlays/`](../../infra/k8s/overlays/)
 
-**But :** livrer la boutique en passant par trois environnements, chacun associé à une branche Git, avec les mêmes garanties sur GitHub Actions et sur Jenkins.
+**But :** livrer la boutique en passant par trois branches Git : `dev` pour l'intégration continue, puis `accp` (recette) et `prod` (production) pour le déploiement continu, avec les mêmes garanties sur GitHub Actions et sur Jenkins.
 
 ---
 
@@ -23,7 +23,7 @@ flowchart LR
 | Branche | Qui y écrit | Ce que fait le pipeline | Environnement |
 |---|---|---|---|
 | `feature/*` | Le développeur | Contrôles qualité et sécurité, build des images, scan, test de bout en bout. **Aucune publication** | Aucun |
-| **`dev`** (par défaut) | Fusion des PR de fonctionnalités | Tout ce qui précède, puis **publication des images `v-<version>`** et déploiement automatique | **dev** : Docker Compose, front sur le port 3100 |
+| **`dev`** (par défaut) | Fusion des PR de fonctionnalités | **Intégration continue** : tout ce qui précède, puis **publication des images `v-<version>`**. **Aucun déploiement** | Aucun |
 | **`accp`** | PR `dev → accp` | Contrôles qualité, puis **promotion des images de dev** (pas de reconstruction), déploiement, **recette** automatique. Si elle réussit, la version reçoit l'étiquette `accp-<version>` | **accp** : Kubernetes, namespaces `accp-*`, topologie identique à la production avec 1 instance par service |
 | **`prod`** | PR `accp → prod` | Contrôle que la version **a été recettée**, **approbation manuelle**, déploiement progressif, test de fumée, **retour arrière automatique** en cas d'échec | **prod** : Kubernetes, namespaces `prod-*`, 2 instances, mise à l'échelle automatique |
 
@@ -36,7 +36,6 @@ flowchart LR
 | Étiquette d'image | Posée par | Signification |
 |---|---|---|
 | `v-<version>` | Pipeline `dev` (ou toute branche dont la version n'existe pas encore) | Image construite, scannée, testée de bout en bout |
-| `dev` | Déploiement dev réussi | Version actuellement en dev |
 | `accp`, `accp-<version>` | Recette réussie | Version **recettée** : seule une version portant cette étiquette peut aller en production |
 | `prod`, `prod-<version>` | Mise en production réussie | Version en production. Un tag Git `livraison-<date>-<version>` est aussi posé (GitHub Actions) |
 
@@ -48,15 +47,17 @@ flowchart LR
 
 ## 3. Les environnements
 
-| | dev | accp (recette) | prod |
-|---|---|---|---|
-| Plateforme | Docker Compose (serveur de dev) | Kubernetes | Kubernetes |
-| Topologie | Toute la boutique, un conteneur par service | **Identique à la production** : 3 zones (namespaces `accp-publique`, `accp-applicative`, `accp-donnees`), cloisonnement réseau | 3 zones (`prod-*`), cloisonnement réseau |
-| Instances | 1 | 1 par service | 2 par service exposé, mise à l'échelle de 2 à 6 (catalogue) |
-| Isolation | Réseau Docker propre | Ne peut **pas** joindre les données de production (NetworkPolicy par environnement) | Idem |
-| Déploiement | Automatique à chaque fusion | Automatique à chaque fusion | **Après approbation** |
-| Vérification | Test de bout en bout | Test de bout en bout dans le cluster (recette) | Test de fumée, **retour arrière automatique** si échec |
-| Configuration | `infra/compose/dev.yml` | `infra/k8s/overlays/accp/` | `infra/k8s/overlays/prod/` |
+La branche `dev` fait de l'**intégration continue** : elle construit, teste et publie les images, mais ne déploie rien. Le **déploiement continu** commence en recette.
+
+| | accp (recette) | prod |
+|---|---|---|
+| Plateforme | Kubernetes | Kubernetes |
+| Topologie | **Identique à la production** : 3 zones (namespaces `accp-publique`, `accp-applicative`, `accp-donnees`), cloisonnement réseau | 3 zones (`prod-*`), cloisonnement réseau |
+| Instances | 1 par service | 2 par service exposé, mise à l'échelle de 2 à 6 (catalogue) |
+| Isolation | Ne peut **pas** joindre les données de production (NetworkPolicy par environnement) | Idem |
+| Déploiement | Automatique à chaque fusion sur `accp` | **Après approbation** |
+| Vérification | Test de bout en bout dans le cluster (recette) | Test de fumée, **retour arrière automatique** si échec |
+| Configuration | `infra/k8s/overlays/accp/` | `infra/k8s/overlays/prod/` |
 
 Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seuls changent les noms de zones, le nombre d'instances, le port exposé et l'étiquette d'environnement des règles réseau. Il n'y a donc **aucun écart de configuration caché** entre recette et production.
 
