@@ -26,7 +26,7 @@ jobs:
     name: "Déploiement ${{ inputs.environnement }}"
     runs-on: ubuntu-24.04
     # Environnements GitHub : historique des déploiements, secrets propres (KUBECONFIG, GHCR_LECTURE),
-    # relecteurs obligatoires sur « production » dès que l'offre le permet
+    # relecteur obligatoire sur « production » : le déploiement attend son approbation
     environment: ${{ inputs.environnement == 'prod' && 'production' || 'accp' }}
     permissions:
       contents: read

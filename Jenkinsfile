@@ -38,23 +38,6 @@ pipeline {
             }
         }
 
-        // accp et prod ne changent que par pull request fusionnée sur GitHub : le dernier commit doit être
-        // un commit de fusion (« Merge pull request #N ») ou de fusion écrasée (« titre (#N) »)
-        stage('Origine : pull request') {
-            when { anyOf { branch 'accp'; branch 'prod' } }
-            steps {
-                sh '''
-                    sujet=$(git log -1 --format=%s)
-                    if ! printf '%s' "$sujet" | grep -Eq '^Merge pull request #[0-9]+|\\(#[0-9]+\\)$'; then
-                        echo "Push direct sur $BRANCH_NAME refusé : la branche ne change que par pull request fusionnée."
-                        echo "Dernier commit : $sujet"
-                        exit 1
-                    fi
-                    echo "Commit issu d'une pull request : $sujet"
-                '''
-            }
-        }
-
         // ---------- 1. Qualité et sécurité du code (toutes les branches) ----------
         stage('Qualité et sécurité du code') {
             parallel {

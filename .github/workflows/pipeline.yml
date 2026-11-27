@@ -7,12 +7,10 @@
 #   images.yml              2. images : construites UNE fois, scannées, testées de bout en bout, publiées sur GHCR
 #   deploiement.yml         3. déploiement en recette ou en production à partir des images publiées sur GHCR
 #   recette-validee.yml     contrôle : seule une version recettée peut aller en production
-#   origine-pull-request.yml contrôle : accp et prod ne changent que par pull request fusionnée
 #   mise-en-production.yml  déclenchement manuel de la mise en production (approbateurs)
 #
-# accp et prod n'acceptent que des pull requests (dev → accp, accp → prod). Un push direct est refusé par le
-# hook Git local (tools/git-hooks/pre-push) et, s'il passe quand même, la chaîne s'arrête avant toute
-# publication ou tout déploiement (origine-pull-request.yml).
+# accp et prod n'acceptent que des pull requests (dev → accp, accp → prod) : un ruleset GitHub refuse
+# tout push direct, force-push ou suppression de ces branches.
 #
 # Branches et environnements :
 #   feature/* → PR vers dev, et dev (par défaut) : intégration continue UNIQUEMENT : contrôles, build des
@@ -44,21 +42,9 @@ jobs:
     name: "Contrôles"
     uses: ./.github/workflows/controles.yml
 
-  origine:
-    name: "Origine"
-    if: github.event_name == 'push' && (github.ref_name == 'accp' || github.ref_name == 'prod')
-    uses: ./.github/workflows/origine-pull-request.yml
-    permissions:
-      contents: read
-      pull-requests: read
-
   images:
     name: "Images"
-    needs: [controles, origine]
-    # origine n'est exécuté que sur accp et prod : ailleurs il est sauté, ce qui ne doit pas bloquer les images
-    if: >-
-      always() && needs.controles.result == 'success' &&
-      (needs.origine.result == 'success' || needs.origine.result == 'skipped')
+    needs: controles
     uses: ./.github/workflows/images.yml
     permissions:
       contents: read

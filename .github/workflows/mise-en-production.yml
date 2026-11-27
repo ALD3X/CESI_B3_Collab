@@ -1,8 +1,7 @@
 # Mise en production de la version de la branche prod, déclenchée à la main par un approbateur.
-# Dans un dépôt privé de l'offre gratuite, GitHub ne propose ni protection de branche ni relecteurs
-# obligatoires sur l'environnement « production » : le déclenchement est donc réservé aux comptes de la
-# variable APPROBATEURS_PROD. L'environnement « production » accueillera l'approbation native de GitHub
-# dès que l'offre le permet.
+# Deux contrôles : le déclenchement est réservé aux comptes de la variable APPROBATEURS_PROD, puis le
+# déploiement attend l'approbation d'un relecteur de l'environnement GitHub « production » (approbation
+# native, limitée à la branche prod).
 #   gh workflow run mise-en-production.yml --ref prod
 name: Mise en production
 
@@ -42,17 +41,9 @@ jobs:
         id: version
         run: echo "version=$(sh infra/ci/images.sh version)" >> "$GITHUB_OUTPUT"
 
-  origine:
-    name: "Origine"
-    needs: approbation
-    uses: ./.github/workflows/origine-pull-request.yml
-    permissions:
-      contents: read
-      pull-requests: read
-
   recette:
     name: "Recette"
-    needs: [approbation, origine]
+    needs: approbation
     uses: ./.github/workflows/recette-validee.yml
     permissions:
       contents: read
