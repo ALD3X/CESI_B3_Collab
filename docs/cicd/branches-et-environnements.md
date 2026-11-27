@@ -87,36 +87,4 @@ Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seu
 
 ---
 
-## 6. Résultats de l'exécution (27/11/2026)
-
-Version promue : **`8f4531fb865e`**, construite une seule fois sur `dev`.
-
-### Jenkins (multi-branches, déploiements réels sur le poste : Docker Compose et minikube)
-
-| Branche | Étapes exécutées | Résultat | Durée |
-|---|---|---|---|
-| `dev` | Contrôles ‖ → build des 9 images, scan, test de bout en bout, publication `v-8f4531fb865e` → **déploiement dev** + test de bout en bout | Vert | 3 min 18 |
-| `accp` | Contrôles ‖ → images **trouvées dans le registre : build sauté** → **déploiement recette** (Kubernetes `accp-*`) → recette OK → étiquette `accp-8f4531fb865e` | Vert | 5 min 50 |
-| `prod` | Contrôles ‖ → images trouvées → **version recettée confirmée** → **arrêt sur l'approbation** « Mettre en production la version 8f4531fb865e (recette validée) ? » | En attente d'un approbateur | — |
-
-### GitHub Actions (runners GitHub, cluster Kubernetes éphémère kind)
-
-| Branche | Jobs | Résultat |
-|---|---|---|
-| `dev` | 4 contrôles ‖ → images : build, scan, test de bout en bout, **publication GHCR** (5 min 23) → **déploiement dev** (3 min 07) | Vert |
-| `accp` | 4 contrôles ‖ → images : **promotion sans reconstruction** (35 s) → **recette** : cluster éphémère, déploiement `accp-*`, test, étiquette (4 min 36) | Vert |
-| `prod` | 4 contrôles ‖ → images trouvées → **contrôle de la version candidate** : recettée | Vert. La mise en production attend le déclenchement manuel d'un approbateur |
-
-### Incidents rencontrés et corrigés
-
-| Incident | Cause | Correction |
-|---|---|---|
-| Publication GHCR refusée (`denied`) au premier run | Le jeton du workflow ne peut pas créer de paquet à la racine du compte | Images nommées sous le dépôt : `ghcr.io/<compte>/<dépôt>/boutique-*` |
-| Aucun pipeline lancé à la création de la branche `accp` | Le filtre `paths` compare la nouvelle branche à `dev` : une promotion ne modifie aucun fichier | Filtre retiré des pushs (conservé sur les PR) |
-| Reconstruction inutile en recette après une modification du README | La version couvrait tout le dossier de la boutique | Version calculée sur les seules sources des images |
-| Jenkins ne joignait pas le cluster | Jenkins tourne dans un conteneur, hors du réseau du cluster | `connecter-minikube.sh` : réseau Docker du cluster + kubeconfig dédié |
-| Approbation de la production non disponible sur GitHub | Dépôt privé, offre gratuite | Mesure compensatoire (déclenchement manuel limité aux approbateurs). Jenkins : étape `input` native |
-
----
-
 [← Conclusion comparative CI/CD](comparaison-et-choix.md) · [Sommaire](../README.md) · [Choix du domaine technique et des critères de comparaison →](../bus-evenements/domaine-et-criteres.md)

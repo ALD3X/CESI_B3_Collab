@@ -97,7 +97,7 @@ Pour chaque outil, on consigne :
 - le **comportement en cas d'échec** : scénarios `regression` (test métier cassé) et `secret` (jeton commité), via `tools/demo/scenario.sh` ;
 - les **points de friction** rencontrés.
 
-Résultats : [US-04.2](demo-github-actions.md) · [US-04.3](demo-jenkins.md) · [US-04.4](comparaison-et-choix.md)
+Analyse : [US-04.2](demo-github-actions.md) · [US-04.3](demo-jenkins.md) · [US-04.4](comparaison-et-choix.md)
 
 ---
 

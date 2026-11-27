@@ -73,17 +73,17 @@ flowchart LR
 
 ---
 
-## 4. Ce qui est déjà démontré
+## 4. Ce que la démonstration met en œuvre
 
 Le pipeline de démonstration de l'EPIC 04 livre la **boutique de démonstration** ([`apps/` et `infra/`](../../README.md)). Il implémente déjà les étapes **① et ②**, à l'identique sur GitHub Actions et Jenkins :
 
-| Étape | Tests de la démo | Démontré |
+| Étape | Tests de la démo | Comportement en cas d'échec |
 |---|---|---|
-| ① | Secrets (gitleaks), SAST (Semgrep), SCA (Trivy sur les dépendances Maven et npm) | Scénario `secret` : clé d'API détectée en 8 s, **livraison bloquée** |
-| ① | Backend : 23 tests unitaires et d'intégration (MockMvc, base H2, binder de test du bus), couverture ≥ 70 % par service (JaCoCo) | Scénario `regression` : 2 tests rouges, **images non construites** (37 s) |
-| ① | Front : 10 tests de composants (Vitest, Testing Library), couverture ≥ 70 % | OK |
-| ② | Scan des 9 images (Trivy), avec registre d'exceptions justifiées et datées | A bloqué Spring Boot 3.4 (failles critiques) et imposé la migration vers Spring Boot 4.0 |
-| ② | **Test de bout en bout** : la boutique complète démarre, un parcours client est joué (connexion, commande, événement reçu par le bus, accès refusé sans jeton, seconde passerelle) | 9 vérifications en 44 s |
+| ① | Secrets (gitleaks), SAST (Semgrep), SCA (Trivy sur les dépendances Maven et npm) | Scénario `secret` : clé d'API détectée, **livraison bloquée** |
+| ① | Backend : 23 tests unitaires et d'intégration (MockMvc, base H2, binder de test du bus), couverture ≥ 70 % par service (JaCoCo) | Scénario `regression` : tests du catalogue en échec, **images non construites** |
+| ① | Front : 10 tests de composants (Vitest, Testing Library), couverture ≥ 70 % | Test en échec ou couverture insuffisante : **livraison bloquée** |
+| ② | Scan des 9 images (Trivy), avec registre d'exceptions justifiées et datées | Vulnérabilité critique corrigeable hors exception : **livraison bloquée** |
+| ② | **Test de bout en bout** : la boutique complète démarre, un parcours client est joué (connexion, commande, événement reçu par le bus, accès refusé sans jeton, seconde passerelle) | Une étape du parcours échoue : **publication bloquée** |
 | ③ | Résilience (en démo, hors pipeline) : panne d'un service, d'un consommateur, rejeu, message poison | Scénarios `tools/scenarios/bus.py` et `tools/scenarios/passerelle.py` (US-05.2 à US-05.5) |
 | ⑤ | Sondes de santé, auto-réparation, mise à jour sans coupure | Démo Kubernetes ([US-06.1](architecture-kubernetes.md)) |
 

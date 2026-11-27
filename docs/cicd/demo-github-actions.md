@@ -60,36 +60,32 @@ flowchart LR
 
 ---
 
-## 4. Vérifications effectuées
+## 4. Contrôles du pipeline et comportement attendu
 
-| Vérification | Résultat |
-|---|---|
-| Syntaxe et expressions du workflow (`actionlint` 1.7.7, avec shellcheck) | Aucune erreur |
-| Backend : tests et couverture (Maven, Spring Boot 4.0) | 23/23 tests, seuil de 70 % de couverture respecté pour chaque service (notifications : 86 %) |
-| Front : tests et couverture (Vitest) | 10/10 tests, couverture 80 % (seuil 70 %) |
-| SAST (Semgrep, règles Java, React et secrets, sévérité ERROR) | Aucune alerte |
-| SCA (Trivy, dépendances Maven et npm) | Aucune vulnérabilité critique corrigeable |
-| Secrets (gitleaks) | Aucun secret |
-| Build des 9 images + scan Trivy (critique) | Après migration vers Spring Boot 4.0 et une exception documentée (voir encadré) |
-| Test de bout en bout (boutique complète, 9 vérifications) | OK en 44 s |
-| Scénarios `regression` et `secret` (mêmes commandes, exécutées via Jenkins) | Livraison bloquée, comme attendu |
+| Contrôle | Outil | Bloque la livraison si… |
+|---|---|---|
+| Syntaxe et expressions du workflow | `actionlint` (avec shellcheck), avant chaque push | erreur de syntaxe ou d'expression |
+| Backend : tests et couverture | Maven via turbo, Spring Boot 4 | un test échoue ou la couverture d'un service passe sous 70 % |
+| Front : tests et couverture | Vitest via turbo | un test échoue ou la couverture passe sous 70 % |
+| SAST | Semgrep (règles Java, React et secrets) | alerte de sévérité ERROR |
+| SCA | Trivy (dépendances Maven et npm) | vulnérabilité critique corrigeable |
+| Secrets | gitleaks | secret détecté |
+| Images | Trivy sur les 9 images | vulnérabilité critique corrigeable, hors exception justifiée et datée (`.trivyignore.yaml`, voir [US-07.4](../securite/amelioration-continue.md)) |
+| Test de bout en bout | Boutique complète démarrée dans le runner, parcours client | une étape du parcours échoue |
 
-> **Incident utile pour la démonstration :** au premier passage, le **scan des images a bloqué la livraison**. Spring Boot 3.4 embarquait des failles critiques (Tomcat, Spring Framework, Spring Security) corrigées seulement dans Spring Framework 7. Le pipeline a donc imposé la **migration vers Spring Boot 4.0.10**. Une faille non exploitable de l'image PostgreSQL (`gosu`) est acceptée, avec justification et date d'expiration, dans `.trivyignore.yaml` (voir [US-07.4](../securite/amelioration-continue.md)).
->
-> Ces étapes ont été exécutées **en local et dans Jenkins avec les mêmes commandes et les mêmes images** que le workflow. L'exécution **sur les runners GitHub** reste à faire par Membre B lors du premier push (les mesures sont à reporter en section 5).
+Les scénarios `regression` et `secret` (`tools/demo/scenario.sh`) bloquent la livraison exactement comme dans Jenkins : mêmes commandes, mêmes images.
 
 ---
 
-## 5. Mesures à relever lors de l'exécution sur GitHub
+## 5. Mesures à relever pendant la démonstration
 
-| Mesure | Valeur |
+| Mesure | Ce qu'on observe |
 |---|---|
-| Temps de mise en place (de la création du dépôt au premier run vert) | *à relever* (estimation : 15 à 30 min) |
-| Durée du premier run | *à relever* |
-| Durée d'un run suivant (cache Maven et npm actif) | *à relever* (référence Jenkins local : 3 min 24 s) |
-| Délai entre push et démarrage du run | *à relever* (généralement quelques secondes) |
-| Scénario `regression` : temps jusqu'au signal rouge | *à relever* |
-| Scénario `secret` : comportement | *à relever* (la *push protection* de GitHub peut bloquer le push avant le pipeline) |
+| Temps de mise en place | De la création du dépôt au premier pipeline vert |
+| Durée d'un pipeline | Premier lancement, puis lancements suivants (caches Maven et npm actifs) |
+| Délai entre le push et le démarrage | Webhook natif de GitHub |
+| Scénario `regression` | Temps jusqu'au signal rouge sur la PR |
+| Scénario `secret` | La *push protection* de GitHub peut refuser le push avant même le pipeline |
 
 ---
 

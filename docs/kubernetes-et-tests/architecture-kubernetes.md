@@ -109,19 +109,18 @@ flowchart TB
 
 ---
 
-## 4. Ce qui se passe lors d'un déploiement (vérifié en démo)
+## 4. Ce qui se passe lors d'un déploiement (visible en démo)
 
-| # | Étape | Composant | Observé dans la démo |
+| # | Étape | Composant | Ce qu'on voit dans la démo |
 |---|---|---|---|
 | 1 | Le pipeline envoie les manifestes de la **boutique complète** (3 zones, 10 composants) | API server → etcd | `deployment.apps/catalogue created`, `networkpolicy… created` |
 | 2 | Le contrôleur Deployment crée un ReplicaSet, qui crée 2 pods « non placés » | controller-manager | — |
 | 3 | Le scheduler attribue un nœud à chaque pod, de préférence des nœuds différents | scheduler | Instances du catalogue, de la passerelle et du front réparties sur `boutique` et `boutique-m02` |
 | 4 | Le kubelet de chaque nœud fait démarrer le conteneur, puis exécute les sondes | kubelet + containerd | `Startup probe failed` le temps que la JVM démarre, puis `Running 1/1` |
 | 5 | Le Service ne route que vers les pods prêts | kube-proxy | **Parcours client complet** servi par Kubernetes : connexion, commande, notification reçue via RabbitMQ |
-| 6 | **Panne simulée** : une instance du catalogue est supprimée | controller-manager | Nouveau pod créé et **prêt en 14 s** (démarrage de la JVM). L'autre instance a servi le trafic pendant ce temps |
-| 7 | **Mise à jour progressive** sur 4 instances | controller-manager | Terminée en 62 s. Premier essai : **1 erreur 500 sur 148 requêtes** (connexion réutilisée vers une instance en cours d'arrêt). Après ajout d'un délai `preStop` de 5 s et d'une nouvelle tentative dans la passerelle : **0 erreur sur 130 requêtes** |
+| 6 | **Panne simulée** : une instance du catalogue est supprimée | controller-manager | Un nouveau pod est créé et devient prêt après le démarrage de la JVM. L'autre instance sert le trafic pendant ce temps |
+| 7 | **Mise à jour progressive** sur 4 instances | controller-manager | Les instances sont remplacées une à une, sans coupure : délai `preStop` de 5 s sur les pods et nouvelle tentative dans la passerelle |
 | 8 | **Cloisonnement** entre zones | plugin réseau (CNI) | Zone publique → passerelle : autorisé. Zone publique → catalogue (contournement de la passerelle) et → base de données : **bloqués** (aucune réponse) |
-| 9 | **Incident** : RabbitMQ ne démarrait pas | kubelet | La sonde `rabbitmq-diagnostics`, lancée en root avant le broker, créait un fichier de session illisible par RabbitMQ. Remplacée par une sonde TCP |
 
 ---
 

@@ -56,50 +56,17 @@ flowchart LR
 
 ---
 
-## 4. Résultats de l'exécution réelle (27/11/2026, poste Windows 11 + Docker Desktop)
+## 4. Comportement attendu des scénarios
 
-Le dépôt de la boutique a été copié dans un dépôt Git autonome, monté dans Jenkins.
+| Scénario | Déclenchement | Ce que montre le pipeline | Ce qui est bloqué |
+|---|---|---|---|
+| **Nominal** | Commit sur une branche suivie | Toutes les étapes au vert, branches parallèles visibles dans la vue des étapes | Rien : les 9 images sont publiées, puis déployées selon la branche |
+| **`regression`** (TVA passée à 21 %) | Commit, détecté automatiquement | L'étape *Backend* échoue, Jenkins affiche les tests en échec du service catalogue et la tendance par rapport au build précédent | Build des images, scan, test de bout en bout et publication : **aucune image défectueuse n'est publiée** |
+| **`secret`** (clé d'API du prestataire de paiement commitée) | Commit, détecté automatiquement | L'étape *Secrets (gitleaks)* échoue, la clé est **masquée dans les journaux** (`--redact`) | Aucune image n'est construite ni publiée |
 
-### Build #1 : pipeline vert
+Les autres branches parallèles vont à leur terme : le développeur reçoit **tous les retours en un seul passage**.
 
-| Étape | Statut | Durée |
-|---|---|---|
-| Checkout | OK | 1 s |
-| Secrets (gitleaks) | OK | 4 s |
-| Backend : 22 tests, couverture ≥ 60 % par service *(seuil relevé à 70 % ensuite, avec un 23e test, pour suivre US-02.1)* | OK | 77 s |
-| Front : 10 tests, couverture 80 % | OK | 16 s |
-| SAST (Semgrep) puis SCA (Trivy) | OK | 6 s + 24 s |
-| Build des 9 images | OK | 28 s *(couches déjà en cache sur le poste)* |
-| Scan des 9 images (Trivy) | OK | 48 s |
-| Test de bout en bout (boutique complète, parcours client) | OK | 42 s |
-| Publication (registre local → `build-1`) | OK | 3 s |
-| **Total** | **SUCCESS** | **3 min 24 s** |
-
-*Les étapes parallèles se chevauchent : la phase de qualité dure environ 77 s, celle de la branche la plus lente (backend).*
-
-### Build #2 : scénario `regression` (TVA passée à 21 %)
-
-- **Déclenchement :** automatique, *« Started by an SCM change »*. Le commit a été détecté par le polling sans aucune action manuelle.
-- **Résultat :** **FAILURE en 37 s.** L'étape *Backend* échoue : dans le service catalogue, **2 tests sur 7 en échec** (prix TTC du produit, calcul de TVA). Jenkins affiche les tests en échec et la tendance par rapport au build précédent.
-- **Quality gate :** build des images, scan, test de bout en bout et publication **non exécutés**. **Aucune image défectueuse n'est publiée.**
-- Les autres branches parallèles (secrets, front, SAST/SCA) vont à leur terme : le développeur reçoit **tous les retours en un seul run**.
-
-### Build #3 : scénario `secret` (clé d'API du prestataire de paiement commitée)
-
-- **Déclenchement :** automatique (polling).
-- **Résultat :** **FAILURE.** L'étape *Secrets (gitleaks)* échoue **en 8 s** (`leaks found: 1`, clé **masquée dans les logs** grâce à `--redact`). Le run se termine en 53 s, le temps que les autres branches parallèles aillent au bout.
-- **Constat :** aucune image n'est construite ni publiée.
-- **Limite :** le secret est **déjà dans l'historique Git**. Le pipeline empêche sa diffusion dans un livrable, mais une vraie clé devrait quand même être **révoquée immédiatement**. D'où l'intérêt de détecter **avant le commit** (hook local) ou **avant le push** (*push protection* de GitHub).
-
-### Synthèse
-
-| Build | Scénario | Déclenchement | Résultat | Durée |
-|---|---|---|---|---|
-| #1 | Nominal | Commit initial (polling) | SUCCESS, 9 images `build-1` publiées | 3 min 24 s |
-| #2 | `regression` | Commit (polling) | Tests du catalogue (2/7 en échec), livraison bloquée | 37 s |
-| #3 | `secret` | Commit (polling) | gitleaks en 8 s, livraison bloquée | 53 s |
-
-> L'exécution précédente sur le mini-service Flask (03/11/2026, 64 s) n'est plus représentative : la boutique compte 9 images et un test de bout en bout de toute l'application.
+> **Limite :** un secret commité est **déjà dans l'historique Git**. Le pipeline empêche sa diffusion dans un livrable, mais une vraie clé doit quand même être **révoquée immédiatement**. D'où l'intérêt de détecter **avant le commit** (hook local) ou **avant le push** (*push protection* de GitHub).
 
 ---
 
@@ -124,7 +91,7 @@ Le dépôt de la boutique a été copié dans un dépôt Git autonome, monté da
 |---|---|
 | Pas d'Internet | Jenkins tourne **entièrement en local** (images téléchargées la veille, dépôt monté en local) : c'est la **démo de secours de l'EPIC** |
 | Jenkins ne démarre pas | Vidéo d'un run complet + captures de *Stage View* et des résultats de tests |
-| Run trop long en direct | Build vert lancé avant la présentation. En direct, on ne montre que le scénario rouge `secret` (gitleaks échoue en 8 s) |
+| Run trop long en direct | Build vert lancé avant la présentation. En direct, on ne montre que le scénario rouge `secret` (gitleaks échoue en quelques secondes) |
 
 **Checklist de la veille :** `docker compose up -d --build`, un build complet vert, captures d'écran, vidéo d'1 à 2 min, puis `docker compose stop` (sans `-v`, pour garder le cache).
 

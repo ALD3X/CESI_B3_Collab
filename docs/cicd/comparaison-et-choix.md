@@ -6,15 +6,14 @@
 
 ---
 
-## 1. Ce que les démonstrations ont montré
+## 1. Ce que les démonstrations montrent
 
 | Observation | GitHub Actions | Jenkins | Source |
 |---|---|---|---|
 | **Mise en place** | Un fichier YAML suffit, aucun serveur | Image personnalisée, 9 plugins, configuration JCasC et Job DSL, registre à part | US-04.2 §6, US-04.3 §5 n°1 |
 | **Même scénario** | 7 étapes, 3 en parallèle | Mêmes 7 étapes, 3 en parallèle | US-04.1 §3 |
-| **Durée d'un pipeline vert** | *à relever sur GitHub* | **3 min 24 s** pour la boutique complète (9 images, test de bout en bout), poste local | US-04.3 §4 |
-| **Détection d'une régression** | Job backend rouge, images non construites (mêmes commandes validées en local) | en **37 s**, 2 tests du catalogue en échec identifiés, build/scan/publication **sautés** | US-04.3 §4, build #2 |
-| **Détection d'un secret** | gitleaks bloque, et la *push protection* GitHub peut bloquer **avant** le pipeline | gitleaks bloque **en 8 s** (build #3) | US-04.3 §4 |
+| **Détection d'une régression** | Job backend rouge, statut rouge sur la PR, images non construites | Étape backend rouge, tests en échec affichés avec leur tendance, build, scan et publication **sautés** | US-04.2 §4, US-04.3 §4 |
+| **Détection d'un secret** | gitleaks bloque, et la *push protection* GitHub peut bloquer **avant** le pipeline | gitleaks bloque, clé masquée dans les journaux | US-04.3 §4 |
 | **Chaîne dev → accp → prod** | Environnements GitHub, promotion des images. **Dépôt privé gratuit : ni protection de branche, ni approbation de la production** (offre Pro requise) : mise en production manuelle limitée à une liste d'approbateurs | Job multi-branches, étape `input` d'approbation **native et gratuite**, déploiement réel sur le cluster local | [US-04.5](branches-et-environnements.md) |
 | **Déclenchement** | Webhook natif : quelques secondes | Polling : jusqu'à 1 min (webhook seulement si Jenkins est exposé) | US-04.3 §5 n°6 |
 | **Intégration à la revue de code** | Statut affiché nativement sur chaque PR | Nécessite des plugins et la configuration d'un webhook vers la forge | US-04.2 §3 |

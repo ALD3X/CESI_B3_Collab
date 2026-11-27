@@ -97,7 +97,7 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 |---|---|---|
 | 0:00 | `.github/workflows/boutique.yml` dans le dépôt | « Le pipeline est du code. Une branche correspond à un environnement : dev, accp pour la recette, prod. » |
 | 0:20 | Onglet *Actions* : run `dev` vert **lancé avant la soutenance** | « 4 contrôles en parallèle, puis les 9 images : build, scan, test de bout en bout, publication. » |
-| 0:50 | Run `accp` | « En recette, on ne reconstruit pas : on promeut les mêmes images, en 35 secondes. La production exécutera exactement ce qui a été testé. » |
+| 0:50 | Run `accp` | « En recette, on ne reconstruit pas : on promeut les mêmes images. La production exécutera exactement ce qui a été testé. » |
 | 1:20 | Onglet *Environments*, run `prod` | « Seule une version recettée peut partir en production, et uniquement sur déclenchement d'un approbateur. » |
 | 1:45 | — | « Limite : dans notre offre gratuite, GitHub refuse la protection de branche et l'approbation native. Nous l'avons compensée par une liste d'approbateurs. » |
 
@@ -107,7 +107,7 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 |---|---|---|
 | 0:00 | http://localhost:8090, job multi-branches **créé par le code** | « Le même pipeline, sur notre propre serveur, hébergeable en Europe. Il découvre seul les branches dev, accp et prod. » |
 | 0:20 | **En direct :** `sh tools/demo/scenario.sh secret`, puis commit sur `dev` | « Un développeur commite la clé d'API du prestataire de paiement… » |
-| 0:50 | gitleaks rouge **en 8 s**, publication sautée | « …la livraison est bloquée. C'est la quality gate de sécurité. » |
+| 0:50 | gitleaks rouge, publication sautée | « …la livraison est bloquée. C'est la quality gate de sécurité. » |
 | 1:10 | Build `prod` arrêté sur l'étape **Approbation** : clic sur « Mettre en production » | « En production, Jenkins attend un humain. Si le test de fumée échoue après le déploiement, retour arrière automatique. » |
 | 1:45 | `sh tools/demo/scenario.sh reset` | « Le prix à payer : un serveur et des plugins à exploiter. » |
 
