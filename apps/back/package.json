@@ -1,0 +1,10 @@
+{
+  "name": "@boutique/back",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Microservices Spring Boot de la boutique (Maven multi-modules), pilotés par turbo via le Maven Wrapper",
+  "scripts": {
+    "build": "node maven.mjs package -DskipTests",
+    "test": "node maven.mjs verify"
+  }
+}

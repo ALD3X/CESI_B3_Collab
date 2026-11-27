@@ -1,0 +1,13 @@
+# Configuration gitleaks du monorepo : règles par défaut, hors dépendances et sorties de build
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Dépendances installées, sorties de build et métadonnées Git"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.git/''',
+  '''(^|/)target/''',
+  '''(^|/)\.turbo/''',
+  '''(^|/)apps/front/(dist|coverage)/''',
+]

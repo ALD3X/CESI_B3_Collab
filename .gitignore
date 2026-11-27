@@ -1,0 +1,13 @@
+# Dépendances et sorties de build
+node_modules/
+.turbo/
+**/target/
+apps/front/dist/
+apps/front/coverage/
+__pycache__/
+
+# État et journaux locaux de la démo
+tools/.etat.json
+build.log
+k8s-preparer.log
+infra/jenkins/.kubeconfig-jenkins
