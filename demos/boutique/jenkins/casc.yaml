@@ -1,0 +1,42 @@
+# Configuration de Jenkins par le code (Jenkins Configuration as Code)
+jenkins:
+  systemMessage: "Démo CI/CD — Boutique de La Petite Maison de l'Épouvante (Jenkins auto-hébergé)"
+  numExecutors: 4
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD:-admin}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  location:
+    url: "http://localhost:8090/"
+
+jobs:
+  - script: >
+      pipelineJob('petite-maison-boutique') {
+        description('Pipeline CI/CD de la boutique (front + microservices), scénario de référence US-04.1')
+        properties {
+          pipelineTriggers {
+            triggers {
+              pollSCM { scmpoll_spec('* * * * *') }
+            }
+          }
+        }
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('${REPO_URL:-file:///source}') }
+                branch('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(false)
+          }
+        }
+      }

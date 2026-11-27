@@ -1,0 +1,8 @@
+# Surcharge pour le pipeline CI/CD : aucun port publié sur la machine.
+# Le test de bout en bout passe par le réseau interne : il peut tourner à côté de la démo sans conflit.
+services:
+  front: { ports: !reset [] }
+  passerelle-spring: { ports: !reset [] }
+  kong: { ports: !reset [] }
+  catalogue: { ports: !reset [] }
+  rabbitmq: { ports: !reset [] }

@@ -1,0 +1,13 @@
+# Registre des vulnérabilités ACCEPTÉES (gestion des risques, US-07.4).
+# Règle : chaque exception est justifiée, limitée à un composant précis, validée en revue de code
+# et expire automatiquement : passé la date, le pipeline redevient rouge et la décision est réexaminée.
+vulnerabilities:
+  - id: CVE-2025-68121
+    paths:
+      - "usr/local/bin/gosu"
+    statement: >-
+      Bibliothèque TLS de Go embarquée dans gosu (image PostgreSQL officielle). gosu sert uniquement à
+      quitter le compte root au démarrage du conteneur et n'ouvre aucune connexion TLS : faille non
+      exploitable dans ce contexte. En production, la base est un service managé (US-08.1) : cette image
+      n'est utilisée qu'en développement et en test. À revoir dès qu'une image PostgreSQL corrigée est publiée.
+    expired_at: 2027-02-28
