@@ -25,7 +25,7 @@ Le dépôt est un **monorepo turbo**. Toutes les commandes passent par les **scr
 ## Prérequis
 
 - Docker Desktop (8 Go de mémoire conseillés)
-- Node.js 26 LTS et JDK 25 LTS
+- Node.js 24.22.3 LTS (voir `.nvmrc`) et JDK 25 LTS
 - Python 3.11 ou plus récent
 - Git (sous Windows, son shell sert à lancer les scripts)
 - Pour Kubernetes : `minikube` et `kubectl`

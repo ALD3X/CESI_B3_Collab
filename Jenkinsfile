@@ -56,7 +56,7 @@ pipeline {
                     }
                 }
                 stage('Front : tests + couverture') {
-                    agent { docker { image 'node:26-alpine'; reuseNode true } }
+                    agent { docker { image 'node:24.22.3-alpine'; reuseNode true } }
                     // Espaces de travail npm du monorepo, tâche turbo « test » du front
                     steps { sh 'npm ci && npm run test:front' }
                 }

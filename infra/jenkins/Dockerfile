@@ -8,9 +8,9 @@ COPY --from=docker:27-cli /usr/local/libexec/docker/cli-plugins/docker-compose /
 # kubectl : déploiements accp et prod sur Kubernetes
 RUN curl -fsSL -o /usr/local/bin/kubectl https://dl.k8s.io/release/v1.34.1/bin/linux/amd64/kubectl \
     && chmod +x /usr/local/bin/kubectl
-# Node.js 26 LTS : les étapes du pipeline passent par les scripts du package.json (npm run …)
-COPY --from=node:26-bookworm-slim /usr/local/bin/node /usr/local/bin/node
-COPY --from=node:26-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+# Node.js 24.22.3 (LTS) : les étapes du pipeline passent par les scripts du package.json (npm run …)
+COPY --from=node:24.22.3-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:24.22.3-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
