@@ -1,6 +1,6 @@
-# US-01.3 — Mise en place du suivi commun
+# Mise en place du suivi commun
 
-> **Jira :** [SCRUM-16](https://maalsi25.atlassian.net/browse/SCRUM-16) · **Epic :** EPIC 01, Cadrage et organisation du groupe
+> **Story :** US-01.3 · **Jira :** [SCRUM-16](https://maalsi25.atlassian.net/browse/SCRUM-16) · **Epic :** EPIC 01, Cadrage et organisation du groupe
 > **Objectif :** suivre l'avancement des stories pour détecter rapidement les blocages.
 
 ---
@@ -100,7 +100,7 @@ Auteur termine ─► PR/MR sur le dépôt Git + carte « En cours de revue » +
    en « Terminé »
 ```
 
-- Le **binôme** de chaque epic est défini dans [US-01.2](US-01.2_roles_et_taches.md#2-pilote-et-binôme-par-epic).
+- Le **binôme** de chaque epic est défini dans [US-01.2](roles-et-taches.md#2-pilote-et-binôme-par-epic).
 - Les livrables **structurants** (US-01.1, US-02.1, US-03.2, US-04.1, US-05.1, US-08.1) sont relus par **tout le groupe** pendant la revue de fin de journée.
 
 ### 3.2 Grille de relecture
@@ -108,7 +108,7 @@ Auteur termine ─► PR/MR sur le dépôt Git + carte « En cours de revue » +
 Le relecteur vérifie :
 
 - [ ] **Tous les critères d'acceptation** du ticket Jira sont couverts.
-- [ ] Le contenu est **cohérent avec la synthèse du besoin** ([US-01.1](US-01.1_synthese_besoin.md)) et utilise les identifiants F-xx / C-xx quand c'est pertinent.
+- [ ] Le contenu est **cohérent avec la synthèse du besoin** ([US-01.1](synthese-du-besoin.md)) et utilise les identifiants F-xx / C-xx quand c'est pertinent.
 - [ ] Les choix sont **justifiés par le contexte** de la Petite Maison de l'Épouvante, pas seulement de façon générique.
 - [ ] Les schémas sont **faits maison** et lisibles, avec leurs sources versionnées.
 - [ ] Le livrable est **réutilisable dans le PPT** (messages clés identifiables).
@@ -121,3 +121,7 @@ Le relecteur vérifie :
 3. Relu et approuvé par le binôme.
 4. Ticket Jira à jour : responsable, statut et lien vers le livrable en commentaire.
 5. Messages clés transmis au responsable du support PPT (Membre C).
+
+---
+
+[← Répartition des rôles et des tâches](roles-et-taches.md) · [Sommaire](../README.md) · [Attributs de qualité logicielle →](../qualite-devsecops/attributs-de-qualite.md)

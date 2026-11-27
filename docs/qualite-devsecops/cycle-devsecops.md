@@ -1,8 +1,8 @@
-# US-02.2 — Cycle de vie DevSecOps
+# Cycle de vie DevSecOps
 
-> **Jira :** [SCRUM-18](https://maalsi25.atlassian.net/browse/SCRUM-18) · **Epic :** EPIC 02, Qualité logicielle et démarche DevSecOps
+> **Story :** US-02.2 · **Jira :** [SCRUM-18](https://maalsi25.atlassian.net/browse/SCRUM-18) · **Epic :** EPIC 02, Qualité logicielle et démarche DevSecOps
 > **Responsable :** Membre B · **Binôme :** Membre D
-> **Entrées :** [US-02.1, attributs de qualité](US-02.1_attributs_qualite.md) · [US-01.1, synthèse du besoin](../cadrage/US-01.1_synthese_besoin.md)
+> **Entrées :** [US-02.1, attributs de qualité](attributs-de-qualite.md) · [US-01.1, synthèse du besoin](../cadrage/synthese-du-besoin.md)
 
 **But :** montrer comment l'équipe livre **en continu** une application de qualité en intégrant la **sécurité à chaque étape** (*shift-left*), et non seulement à la fin.
 
@@ -172,3 +172,7 @@ Ces quatre indicateurs mesurent l'efficacité du cycle et guident l'amélioratio
 - **EPIC 04 :** les deux outils CI/CD comparés doivent implémenter les étapes 3 à 6 de ce cycle.
 - **EPIC 06 :** détail des types de tests (étape 4) et de leur position dans le pipeline.
 - **EPIC 07 :** détail des scans (étapes 3 à 5), de la supervision et de la gestion des incidents (étape 8).
+
+---
+
+[← Attributs de qualité logicielle](attributs-de-qualite.md) · [Sommaire](../README.md) · [Métiers impliqués et leurs interactions →](metiers-et-interactions.md)

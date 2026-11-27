@@ -1,8 +1,8 @@
-# US-07.4 — Amélioration continue de la sécurité
+# Amélioration continue de la sécurité
 
-> **Jira :** [SCRUM-37](https://maalsi25.atlassian.net/browse/SCRUM-37) · **Epic :** EPIC 07, Politique de sécurité et amélioration continue
+> **Story :** US-07.4 · **Jira :** [SCRUM-37](https://maalsi25.atlassian.net/browse/SCRUM-37) · **Epic :** EPIC 07, Politique de sécurité et amélioration continue
 > **Responsable :** Membre C · **Binôme :** Membre D
-> **Entrées :** [US-07.1, inventaire](US-07.1_inventaire_applicatif.md) · [US-07.2, contrôles et scans](US-07.2_controles_scans.md) · [US-07.3, supervision et incidents](US-07.3_supervision_incidents.md)
+> **Entrées :** [US-07.1, inventaire](inventaire-du-parc.md) · [US-07.2, contrôles et scans](controles-et-scans.md) · [US-07.3, supervision et incidents](supervision-et-incidents.md)
 
 **But :** faire en sorte que **chaque événement** (incident, scan, audit, retour d'expérience) **renforce durablement** la sécurité, au lieu d'être traité une seule fois puis oublié.
 
@@ -72,7 +72,7 @@ flowchart LR
 | **Check** | Nouveau scan : 9 images sur 9 conformes. Les 23 tests et le test de bout en bout restent verts : la migration n'a rien cassé |
 | **Act** | Deux règles ajoutées au pipeline : **mise à jour des paquets des images de base à chaque build**, et **registre des exceptions avec date d'expiration** |
 
-La même boucle s'est appliquée à la **fiabilité** : les essais de panne ont révélé des réglages par défaut dangereux dans les deux passerelles d'API (attente de 75 s, requêtes envoyées au mauvais service après un redéploiement, coupe-circuit fermé 60 s). La règle qui en découle : **aucun délai ni coupe-circuit laissé à sa valeur par défaut sans test de panne** ([US-05.5](../technologies/US-05.5_passerelle_api.md)).
+La même boucle s'est appliquée à la **fiabilité** : les essais de panne ont révélé des réglages par défaut dangereux dans les deux passerelles d'API (attente de 75 s, requêtes envoyées au mauvais service après un redéploiement, coupe-circuit fermé 60 s). La règle qui en découle : **aucun délai ni coupe-circuit laissé à sa valeur par défaut sans test de panne** ([US-05.5](../passerelle-api/spring-cloud-gateway-ou-kong.md)).
 
 ---
 
@@ -115,3 +115,7 @@ Les indicateurs sont présentés à la **direction chaque trimestre** : c'est el
 | **Ensuite, chaque mois** | Scan d'infrastructure (S7), test de restauration, revue des indicateurs |
 | **Chaque trimestre** | Revue de l'inventaire et des risques, revue SaaS (S8), comité avec la direction |
 | **Chaque année** | Test d'intrusion, formation, mise à jour de la politique. Trajectoire possible vers **ISO 27001** si un partenaire ou un client l'exige |
+
+---
+
+[← Supervision et réaction aux incidents](supervision-et-incidents.md) · [Sommaire](../README.md) · [Recommandation globale consolidée →](../soutenance/recommandation-globale.md)

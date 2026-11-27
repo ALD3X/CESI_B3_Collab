@@ -1,8 +1,8 @@
-# US-04.4 — Conclusion comparative CI/CD
+# Conclusion comparative CI/CD
 
-> **Jira :** [SCRUM-26](https://maalsi25.atlassian.net/browse/SCRUM-26) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
+> **Story :** US-04.4 · **Jira :** [SCRUM-26](https://maalsi25.atlassian.net/browse/SCRUM-26) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
 > **Responsable :** Membre B · **Binôme :** Membre D
-> **Entrées :** [US-04.1, critères](US-04.1_candidats_et_criteres.md) · [US-04.2, démo GitHub Actions](US-04.2_demo_github_actions.md) · [US-04.3, démo Jenkins](US-04.3_demo_jenkins.md)
+> **Entrées :** [US-04.1, critères](candidats-et-criteres.md) · [US-04.2, démo GitHub Actions](demo-github-actions.md) · [US-04.3, démo Jenkins](demo-jenkins.md)
 
 ---
 
@@ -15,7 +15,7 @@
 | **Durée d'un pipeline vert** | *à relever sur GitHub* | **3 min 24 s** pour la boutique complète (9 images, test de bout en bout), poste local | US-04.3 §4 |
 | **Détection d'une régression** | Job backend rouge, images non construites (mêmes commandes validées en local) | en **37 s**, 2 tests du catalogue en échec identifiés, build/scan/publication **sautés** | US-04.3 §4, build #2 |
 | **Détection d'un secret** | gitleaks bloque, et la *push protection* GitHub peut bloquer **avant** le pipeline | gitleaks bloque **en 8 s** (build #3) | US-04.3 §4 |
-| **Chaîne dev → accp → prod** | Environnements GitHub, promotion des images. **Dépôt privé gratuit : ni protection de branche, ni approbation de la production** (offre Pro requise) : mise en production manuelle limitée à une liste d'approbateurs | Job multi-branches, étape `input` d'approbation **native et gratuite**, déploiement réel sur le cluster local | [US-04.5](US-04.5_branches_environnements.md) |
+| **Chaîne dev → accp → prod** | Environnements GitHub, promotion des images. **Dépôt privé gratuit : ni protection de branche, ni approbation de la production** (offre Pro requise) : mise en production manuelle limitée à une liste d'approbateurs | Job multi-branches, étape `input` d'approbation **native et gratuite**, déploiement réel sur le cluster local | [US-04.5](branches-et-environnements.md) |
 | **Déclenchement** | Webhook natif : quelques secondes | Polling : jusqu'à 1 min (webhook seulement si Jenkins est exposé) | US-04.3 §5 n°6 |
 | **Intégration à la revue de code** | Statut affiché nativement sur chaque PR | Nécessite des plugins et la configuration d'un webhook vers la forge | US-04.2 §3 |
 | **Isolation des exécutions** | Runner neuf pour chaque job | Conteneurs jetables, mais **socket Docker partagé = root sur l'hôte** | US-04.3 §5 n°2 |
@@ -49,7 +49,7 @@
 
 ## 3. Notation pondérée
 
-Notes de 1 (faible) à 5 (excellent). Les poids sont définis dans [US-04.1](US-04.1_candidats_et_criteres.md) §2.
+Notes de 1 (faible) à 5 (excellent). Les poids sont définis dans [US-04.1](candidats-et-criteres.md) §2.
 
 | Critère | Poids | GitHub Actions | Jenkins | Justification |
 |---|---|---|---|---|
@@ -89,3 +89,7 @@ Cette recommandation **n'est pas universelle**. Jenkins (ou une forge auto-hébe
 - des besoins spécifiques apparaissent : pipelines très longs (vidéo Evil Ed en V2), matériel particulier, exécution hors réseau.
 
 > **Message pour la soutenance :** *« Les deux outils savent faire le travail : nous l'avons démontré sur le même scénario. Pour une petite équipe qui doit livrer vite et en sécurité, nous choisissons de ne pas exploiter notre propre serveur de CI, et nous gardons la porte ouverte grâce à des étapes portables. »*
+
+---
+
+[← Démonstration du second outil : Jenkins](demo-jenkins.md) · [Sommaire](../README.md) · [Branches, environnements et chaîne de livraison (dev → accp → prod) →](branches-et-environnements.md)

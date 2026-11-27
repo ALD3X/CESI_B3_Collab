@@ -1,7 +1,7 @@
-# US-01.1 — Synthèse du besoin de l'entreprise
+# Synthèse du besoin de l'entreprise
 
-> **Jira :** [SCRUM-14](https://maalsi25.atlassian.net/browse/SCRUM-14) · **Epic :** EPIC 01, Cadrage et organisation du groupe
-> **Source :** `docs/consigne_projet/contexte_PetiteMaisonEpouvante.pdf` (V1, 06/03/2025)
+> **Story :** US-01.1 · **Jira :** [SCRUM-14](https://maalsi25.atlassian.net/browse/SCRUM-14) · **Epic :** EPIC 01, Cadrage et organisation du groupe
+> **Source :** `docs/sujet/contexte-petite-maison-epouvante.pdf` (V1, 06/03/2025)
 > **Objectif :** identifier les fonctionnalités et les contraintes de la future plateforme `petitemaisonepouvante.com` pour pouvoir justifier ensuite les choix de conception (attributs qualité, architecture, technologies, sécurité).
 
 ---
@@ -144,3 +144,7 @@ Cette synthèse alimente directement les US suivantes :
 2. La plateforme remplace-t-elle le site vitrine CMS actuel ? *(hypothèse : oui)* Le site Evil Ed est-il intégré ? *(hypothèse : non en V1)*
 3. La vente en ligne puise-t-elle dans le stock des magasins ou dans un stock web dédié ? *(hypothèse : stocks magasins agrégés et stock dédié aux exclusivités web)*
 4. Le site est-il bilingue FR/EN pour Londres ? *(hypothèse : oui)*
+
+---
+
+[Sommaire](../README.md) · [Répartition des rôles et des tâches →](roles-et-taches.md)

@@ -1,8 +1,8 @@
-# US-07.2 — Contrôles et scans de sécurité
+# Contrôles et scans de sécurité
 
-> **Jira :** [SCRUM-35](https://maalsi25.atlassian.net/browse/SCRUM-35) · **Epic :** EPIC 07, Politique de sécurité et amélioration continue
+> **Story :** US-07.2 · **Jira :** [SCRUM-35](https://maalsi25.atlassian.net/browse/SCRUM-35) · **Epic :** EPIC 07, Politique de sécurité et amélioration continue
 > **Responsable :** Membre C · **Binôme :** Membre D
-> **Entrées :** [US-02.2, cycle DevSecOps](../qualite_devsecops/US-02.2_cycle_devsecops.md) · [US-04.4, CI/CD](../cicd/US-04.4_conclusion_comparative.md) · [US-07.1, inventaire](US-07.1_inventaire_applicatif.md)
+> **Entrées :** [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) · [US-04.4, CI/CD](../cicd/comparaison-et-choix.md) · [US-07.1, inventaire](inventaire-du-parc.md)
 
 **But :** détecter les vulnérabilités **le plus tôt possible**, sur la plateforme **et** sur le SI existant, puis **traiter** chaque constat dans un délai maîtrisé.
 
@@ -80,10 +80,10 @@ flowchart LR
 | [Faible] **Faible** | Au fil des sprints | Au fil des sprints |
 
 **Règles :**
-- **Le tri** est fait par le **Security Champion** (cf. [US-02.3](../qualite_devsecops/US-02.3_metiers_interactions.md)). En cas de doute, il sollicite le RSSI externe.
+- **Le tri** est fait par le **Security Champion** (cf. [US-02.3](../qualite-devsecops/metiers-et-interactions.md)). En cas de doute, il sollicite le RSSI externe.
 - **Une exception** (faux positif, absence de correctif) est **écrite**, validée, et a une **date d'expiration**. Il n'y a jamais d'exception permanente.
 - **Une vulnérabilité en production sans correctif** est traitée par une **mesure compensatoire** : règle du WAF (EN-1), désactivation de la fonction, isolement réseau.
-- **Chaque constat est tracé** (ticket Jira avec le label `securite`), pour mesurer les délais et alimenter l'amélioration continue ([US-07.4](US-07.4_amelioration_continue.md)).
+- **Chaque constat est tracé** (ticket Jira avec le label `securite`), pour mesurer les délais et alimenter l'amélioration continue ([US-07.4](amelioration-continue.md)).
 
 ### Mise en œuvre réelle sur la boutique de démonstration
 
@@ -96,3 +96,7 @@ Les contrôles ci-dessus tournent dans le pipeline de la [boutique](../../README
 | Image PostgreSQL : bibliothèque TLS de Go embarquée dans `gosu` | **Exception documentée** dans [`.trivyignore.yaml`](../../.trivyignore.yaml) : `gosu` n'ouvre aucune connexion TLS, l'image ne sert qu'en développement (base managée en production). **Expiration au 28/02/2027** | Exception justifiée et datée |
 
 Résultat : 9 images sur 9 sans vulnérabilité critique corrigeable, **hors une exception écrite, justifiée et qui expire**. Passé la date, le pipeline redevient rouge et la décision est réexaminée.
+
+---
+
+[← Démarche d'inventaire applicatif](inventaire-du-parc.md) · [Sommaire](../README.md) · [Supervision et réaction aux incidents →](supervision-et-incidents.md)

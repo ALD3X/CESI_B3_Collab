@@ -1,6 +1,6 @@
-# US-08.1 — Recommandation globale consolidée
+# Recommandation globale consolidée
 
-> **Jira :** [SCRUM-38](https://maalsi25.atlassian.net/browse/SCRUM-38) · **Epic :** EPIC 08, Synthèse, soutenance et retour d'expérience
+> **Story :** US-08.1 · **Jira :** [SCRUM-38](https://maalsi25.atlassian.net/browse/SCRUM-38) · **Epic :** EPIC 08, Synthèse, soutenance et retour d'expérience
 > **Responsable :** Membre A · **Binôme :** Membre C
 > **Entrées :** tous les livrables des EPIC 01 à 07
 
@@ -12,17 +12,17 @@
 
 | Domaine | Recommandation | Raison principale (contexte) | Livrable |
 |---|---|---|---|
-| **Qualité** | 7 attributs priorisés : **sécurité** et **fiabilité** non négociables | Plateforme commerciale, paiement, données personnelles | [US-02.1](../qualite_devsecops/US-02.1_attributs_qualite.md) |
-| **Démarche** | Cycle **DevSecOps** en 8 étapes, contrôles *shift-left*, quality gates | Petite équipe : l'automatisation est le garde-fou | [US-02.2](../qualite_devsecops/US-02.2_cycle_devsecops.md) |
-| **Équipe** | Recruter en priorité **1 DevOps/SRE** et **1 développeur confirmé**. Sécurité, UX et DPO en partie externalisés | 1 architecte + 2 alternants ne couvrent ni l'exploitation ni la sécurité | [US-02.3](../qualite_devsecops/US-02.3_metiers_interactions.md) |
-| **Architecture** | Services par domaine métier, **bus d'événements**, passerelle unique, adaptateurs vers le SI et les prestataires | Isolation des pannes, pics de charge, remplacement des CSV, V2/V3 sans refonte | [US-03.2](../architecture/US-03.2_architecture_macroscopique.md) |
-| **CI/CD** | **GitHub Actions**, avec un runner de déploiement auto-hébergé dans l'UE | Rien à exploiter, mêmes quality gates que Jenkins (démontré) | [US-04.4](../cicd/US-04.4_conclusion_comparative.md) |
-| **Bus d'événements** | **RabbitMQ**, événements archivés, contrats versionnés | Fiabilité égale à Kafka, 2 à 6 fois moins de ressources, gestion d'erreur native au broker | [US-05.4](../technologies/US-05.4_choix_technique.md) |
-| **Passerelle d'API** | **Spring Cloud Gateway** (+ Redis managé), délais et coupe-circuit par route | Même technologie que les services, limitation par membre, repli en 1 s, licence libre maintenue | [US-05.5](../technologies/US-05.5_passerelle_api.md) |
-| **Socle applicatif** | **Spring Boot 4** pour les services, **React** pour le front, contrats d'événements versionnés (Spring Cloud Stream) | Une seule pile pour une petite équipe. Bus interchangeable sans réécriture (démontré sur la [boutique](../../README.md)) | [US-05.4](../technologies/US-05.4_choix_technique.md) |
-| **Exécution** | **Kubernetes managé** chez un hébergeur européen. Bases et broker en services managés | Redondance, mise à l'échelle et auto-réparation (démontrées), C-04 | [US-06.1](../environnement_tests/US-06.1_architecture_orchestrateur.md) |
-| **Tests** | Pyramide de tests, 5 étapes de pipeline, chaque attribut couvert par au moins 2 types de tests | Lier chaque seuil de qualité à un contrôle automatique | [US-06.2](../environnement_tests/US-06.2_categories_tests.md), [US-06.3](../environnement_tests/US-06.3_tests_pipeline.md) |
-| **Sécurité** | Politique en 4 briques : **connaître, détecter, réagir, s'améliorer**, appliquée **aussi au SI existant** | Le SI actuel (VPN, sauvegardes, CSV) est le maillon faible | [US-07.1](../securite/US-07.1_inventaire_applicatif.md) à [US-07.4](../securite/US-07.4_amelioration_continue.md) |
+| **Qualité** | 7 attributs priorisés : **sécurité** et **fiabilité** non négociables | Plateforme commerciale, paiement, données personnelles | [US-02.1](../qualite-devsecops/attributs-de-qualite.md) |
+| **Démarche** | Cycle **DevSecOps** en 8 étapes, contrôles *shift-left*, quality gates | Petite équipe : l'automatisation est le garde-fou | [US-02.2](../qualite-devsecops/cycle-devsecops.md) |
+| **Équipe** | Recruter en priorité **1 DevOps/SRE** et **1 développeur confirmé**. Sécurité, UX et DPO en partie externalisés | 1 architecte + 2 alternants ne couvrent ni l'exploitation ni la sécurité | [US-02.3](../qualite-devsecops/metiers-et-interactions.md) |
+| **Architecture** | Services par domaine métier, **bus d'événements**, passerelle unique, adaptateurs vers le SI et les prestataires | Isolation des pannes, pics de charge, remplacement des CSV, V2/V3 sans refonte | [US-03.2](../architecture/architecture-macroscopique.md) |
+| **CI/CD** | **GitHub Actions**, avec un runner de déploiement auto-hébergé dans l'UE | Rien à exploiter, mêmes quality gates que Jenkins (démontré) | [US-04.4](../cicd/comparaison-et-choix.md) |
+| **Bus d'événements** | **RabbitMQ**, événements archivés, contrats versionnés | Fiabilité égale à Kafka, 2 à 6 fois moins de ressources, gestion d'erreur native au broker | [US-05.4](../bus-evenements/comparaison-et-choix.md) |
+| **Passerelle d'API** | **Spring Cloud Gateway** (+ Redis managé), délais et coupe-circuit par route | Même technologie que les services, limitation par membre, repli en 1 s, licence libre maintenue | [US-05.5](../passerelle-api/spring-cloud-gateway-ou-kong.md) |
+| **Socle applicatif** | **Spring Boot 4** pour les services, **React** pour le front, contrats d'événements versionnés (Spring Cloud Stream) | Une seule pile pour une petite équipe. Bus interchangeable sans réécriture (démontré sur la [boutique](../../README.md)) | [US-05.4](../bus-evenements/comparaison-et-choix.md) |
+| **Exécution** | **Kubernetes managé** chez un hébergeur européen. Bases et broker en services managés | Redondance, mise à l'échelle et auto-réparation (démontrées), C-04 | [US-06.1](../kubernetes-et-tests/architecture-kubernetes.md) |
+| **Tests** | Pyramide de tests, 5 étapes de pipeline, chaque attribut couvert par au moins 2 types de tests | Lier chaque seuil de qualité à un contrôle automatique | [US-06.2](../kubernetes-et-tests/categories-de-tests.md), [US-06.3](../kubernetes-et-tests/tests-dans-le-pipeline.md) |
+| **Sécurité** | Politique en 4 briques : **connaître, détecter, réagir, s'améliorer**, appliquée **aussi au SI existant** | Le SI actuel (VPN, sauvegardes, CSV) est le maillon faible | [US-07.1](../securite/inventaire-du-parc.md) à [US-07.4](../securite/amelioration-continue.md) |
 
 **Fil rouge :** *une petite équipe qui doit livrer une plateforme commerciale sûre.* D'où, à chaque niveau, le même arbitrage : **automatiser** plutôt que contrôler à la main, **louer un service managé** plutôt que l'exploiter, et **garder la réversibilité** (étapes de pipeline portables, contrats d'événements, adaptateurs).
 
@@ -99,3 +99,7 @@
 | Présentation fluide et professionnelle | 1 | US-08.2, US-08.4 | Répétitions |
 
 **Aucun critère n'est non couvert.** Le point de vigilance est la **présentation orale**, qui dépend des répétitions (US-08.4).
+
+---
+
+[← Amélioration continue de la sécurité](../securite/amelioration-continue.md) · [Sommaire](../README.md) · [Déroulé de la soutenance et scénarios des démos →](deroule-de-la-soutenance.md)

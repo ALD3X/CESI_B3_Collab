@@ -1,8 +1,8 @@
-# US-07.3 — Supervision et réaction aux incidents
+# Supervision et réaction aux incidents
 
-> **Jira :** [SCRUM-36](https://maalsi25.atlassian.net/browse/SCRUM-36) · **Epic :** EPIC 07, Politique de sécurité et amélioration continue
+> **Story :** US-07.3 · **Jira :** [SCRUM-36](https://maalsi25.atlassian.net/browse/SCRUM-36) · **Epic :** EPIC 07, Politique de sécurité et amélioration continue
 > **Responsable :** Membre B *(renfort)* · **Binôme :** Membre C
-> **Entrées :** [US-07.1, inventaire](US-07.1_inventaire_applicatif.md) · [US-02.2, cycle DevSecOps](../qualite_devsecops/US-02.2_cycle_devsecops.md) (étape 8) · [US-02.3, métiers](../qualite_devsecops/US-02.3_metiers_interactions.md)
+> **Entrées :** [US-07.1, inventaire](inventaire-du-parc.md) · [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) (étape 8) · [US-02.3, métiers](../qualite-devsecops/metiers-et-interactions.md)
 
 **But :** **détecter** rapidement les anomalies (techniques et de sécurité), **réagir** de façon organisée, et **gérer les risques** avant qu'ils ne deviennent des incidents.
 
@@ -120,3 +120,7 @@ Démarche **allégée**, inspirée d'**EBIOS Risk Manager** (ANSSI) : 1 atelier 
 | R8 | **Dépendance à une seule personne** (le technicien) | 3 | 3 | 9 moyen | Documentation, comptes nominatifs, double compétence avec le DevOps |
 
 > **Règle de couleur :** Niveau **élevé** dès que la **gravité vaut 4** (impact vital : vente, données clients, intégrité de la chaîne de livraison), quelle que soit la vraisemblance. niveau **moyen** pour les autres risques de niveau ≥ 6. Les risques **élevés** sont traités en priorité et suivis par la direction chaque trimestre.
+
+---
+
+[← Contrôles et scans de sécurité](controles-et-scans.md) · [Sommaire](../README.md) · [Amélioration continue de la sécurité →](amelioration-continue.md)

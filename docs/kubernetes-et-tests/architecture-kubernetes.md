@@ -1,8 +1,8 @@
-# US-06.1 — Architecture de l'orchestrateur (Kubernetes)
+# Architecture de l'orchestrateur (Kubernetes)
 
-> **Jira :** [SCRUM-31](https://maalsi25.atlassian.net/browse/SCRUM-31) · **Epic :** EPIC 06, Environnement managé et stratégie de tests
+> **Story :** US-06.1 · **Jira :** [SCRUM-31](https://maalsi25.atlassian.net/browse/SCRUM-31) · **Epic :** EPIC 06, Environnement managé et stratégie de tests
 > **Responsable :** Membre D · **Binôme :** Membre B
-> **Entrées :** [US-03.2, architecture](../architecture/US-03.2_architecture_macroscopique.md) · [US-02.2, cycle DevSecOps](../qualite_devsecops/US-02.2_cycle_devsecops.md) · **Démo :** [boutique sur Kubernetes](../../infra/k8s/) (`sh infra/k8s/demo.sh`)
+> **Entrées :** [US-03.2, architecture](../architecture/architecture-macroscopique.md) · [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) · **Démo :** [boutique sur Kubernetes](../../infra/k8s/) (`sh infra/k8s/demo.sh`)
 
 **But :** expliquer à la direction **comment l'environnement managé exécute la plateforme**, quels sont ses composants internes, et pourquoi il répond aux exigences de disponibilité et de scalabilité.
 
@@ -141,3 +141,7 @@ flowchart TB
 **Découpage en namespaces proposé :** `zone-publique` (UI), `zone-applicative` (passerelle, services métier), `zone-donnees` (bases, si elles ne sont pas en service managé), `zone-integration` (IN-x), `observabilite`.
 
 **Recommandation d'exploitation :** Kubernetes **managé** chez un hébergeur européen. Les bases de données et le bus d'événements sont pris de préférence **en service managé**, hors du cluster, pour que la petite équipe n'ait à exploiter que des services sans état.
+
+---
+
+[← Comparaison complémentaire : passerelle d'API (Spring Cloud Gateway et Kong)](../passerelle-api/spring-cloud-gateway-ou-kong.md) · [Sommaire](../README.md) · [Catégories de tests →](categories-de-tests.md)

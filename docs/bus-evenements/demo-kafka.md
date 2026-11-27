@@ -1,14 +1,14 @@
-# US-05.3 — Démonstration de la seconde technologie : Apache Kafka
+# Démonstration de la seconde technologie : Apache Kafka
 
-> **Jira :** [SCRUM-29](https://maalsi25.atlassian.net/browse/SCRUM-29) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
+> **Story :** US-05.3 · **Jira :** [SCRUM-29](https://maalsi25.atlassian.net/browse/SCRUM-29) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
 > **Responsable :** Membre A *(renfort)* · **Binôme :** Membre C
-> **Scénario de référence :** [US-05.1](US-05.1_domaine_et_criteres.md) §4 · **Application :** [boutique de démonstration](../../README.md) · **Scénario :** [`tools/scenarios/bus.py`](../../tools/scenarios/bus.py) · **Banc de débit :** [`tools/scenarios/banc-brokers/`](../../tools/scenarios/banc-brokers/)
+> **Scénario de référence :** [US-05.1](domaine-et-criteres.md) §4 · **Application :** [boutique de démonstration](../../README.md) · **Scénario :** [`tools/scenarios/bus.py`](../../tools/scenarios/bus.py) · **Banc de débit :** [`tools/scenarios/banc-brokers/`](../../tools/scenarios/banc-brokers/)
 
 ---
 
 ## 1. Cas d'usage démontré
 
-**Strictement le même** que pour RabbitMQ ([US-05.2](US-05.2_demo_rabbitmq.md)) : l'événement « commande payée » de la boutique, publié par Commandes et consommé par Notifications et Expédition. Les services et le scénario sont **identiques** : on bascule simplement le broker (`python tools/boutique.py bus kafka`, environ 30 s, sans reconstruire d'image).
+**Strictement le même** que pour RabbitMQ ([US-05.2](demo-rabbitmq.md)) : l'événement « commande payée » de la boutique, publié par Commandes et consommé par Notifications et Expédition. Les services et le scénario sont **identiques** : on bascule simplement le broker (`python tools/boutique.py bus kafka`, environ 30 s, sans reconstruire d'image).
 
 ## 2. Topologie mise en place
 
@@ -61,7 +61,7 @@ flowchart LR
 
 **Mesures dans la boutique** (`tools/scenarios/mesures.py`, 40 commandes) : délai entre la commande et la notification reçue dans le navigateur **30 ms en médiane, 50 ms au 95e centile**. Mémoire du broker **328 Mio** (charge de la boutique), image de **199 Mio**.
 
-> **Incident rencontré :** au premier envoi vers Kafka (création du topic), la réponse a dépassé 1 s. Le coupe-circuit de la passerelle a alors renvoyé « indisponible » alors que la commande était enregistrée, d'où un risque de double commande. Le délai a été porté à 5 s (voir [US-05.5](US-05.5_passerelle_api.md)).
+> **Incident rencontré :** au premier envoi vers Kafka (création du topic), la réponse a dépassé 1 s. Le coupe-circuit de la passerelle a alors renvoyé « indisponible » alors que la commande était enregistrée, d'où un risque de double commande. Le délai a été porté à 5 s (voir [US-05.5](../passerelle-api/spring-cloud-gateway-ou-kong.md)).
 
 **Banc de débit brut** (mêmes conditions que RabbitMQ, 14/11/2026) :
 
@@ -85,3 +85,7 @@ flowchart LR
 | **Pas de DLQ dans le broker** | Le rebut et les nouvelles tentatives sont fournis par le **framework** (Spring Cloud Stream). Ils dépendent donc du langage et de la bibliothèque de chaque service. Le routage fin reste à coder (ou à confier à Kafka Streams) |
 | **Empreinte mémoire** | **2,2 fois** celle de RabbitMQ dans la boutique (328 contre 147 Mio), **6 fois** sous la charge du banc brut. En production, **3 nœuds minimum** sont recommandés pour la tolérance aux pannes |
 | **Pas de console intégrée** | La console est un produit tiers à déployer et à sécuriser |
+
+---
+
+[← Démonstration de la première technologie : RabbitMQ](demo-rabbitmq.md) · [Sommaire](../README.md) · [Argumentation du choix technique : bus d'événements →](comparaison-et-choix.md)

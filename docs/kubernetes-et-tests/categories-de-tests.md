@@ -1,8 +1,8 @@
-# US-06.2 — Catégories de tests
+# Catégories de tests
 
-> **Jira :** [SCRUM-32](https://maalsi25.atlassian.net/browse/SCRUM-32) · **Epic :** EPIC 06, Environnement managé et stratégie de tests
+> **Story :** US-06.2 · **Jira :** [SCRUM-32](https://maalsi25.atlassian.net/browse/SCRUM-32) · **Epic :** EPIC 06, Environnement managé et stratégie de tests
 > **Responsable :** Membre D · **Binôme :** Membre B
-> **Entrées :** [US-02.1, attributs de qualité](../qualite_devsecops/US-02.1_attributs_qualite.md) (seuils de vérification) · [US-02.2, cycle DevSecOps](../qualite_devsecops/US-02.2_cycle_devsecops.md)
+> **Entrées :** [US-02.1, attributs de qualité](../qualite-devsecops/attributs-de-qualite.md) (seuils de vérification) · [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md)
 
 **But :** définir **quels tests** vérifient **quels attributs de qualité**, contre **quels risques** du projet, et **à partir de quand** un test bloque la livraison.
 
@@ -46,7 +46,7 @@ flowchart TB
 | **Objectif** | Vérifier qu'un service fonctionne **avec ses dépendances réelles** : sa base de données, le bus d'événements (publication / consommation, DLQ), le connecteur SI |
 | **Risques couverts** | Requête incorrecte, événement mal formé, message perdu entre deux services, régression de la synchronisation des stocks (survente) |
 | **Attributs** | Fiabilité, interopérabilité |
-| **Critère de passage** | 100 % réussis, dépendances lancées dans des conteneurs éphémères (comme le scénario de [US-05.2](../technologies/US-05.2_demo_rabbitmq.md)) |
+| **Critère de passage** | 100 % réussis, dépendances lancées dans des conteneurs éphémères (comme le scénario de [US-05.2](../bus-evenements/demo-rabbitmq.md)) |
 | **En cas d'échec** | Bloquant |
 
 ### 2.3 Tests de contrat
@@ -86,7 +86,7 @@ flowchart TB
 | **Objectif** | Simuler un **pic** (festival, exclusivité Evil Ed) à **10 fois le trafic moyen**, puis un **test d'endurance** de plusieurs heures |
 | **Risques couverts** | Site indisponible pendant le pic, survente lors d'une ruée sur une édition limitée, fuite mémoire |
 | **Attributs** | Scalabilité, disponibilité |
-| **Critère de passage** | Seuils de performance tenus à ×10, **mise à l'échelle automatique déclenchée** (HPA, cf. [US-06.1](US-06.1_architecture_orchestrateur.md)), **0 survente**, retour à la normale après le pic |
+| **Critère de passage** | Seuils de performance tenus à ×10, **mise à l'échelle automatique déclenchée** (HPA, cf. [US-06.1](architecture-kubernetes.md)), **0 survente**, retour à la normale après le pic |
 | **En cas d'échec** | Bloque la release majeure. Test **obligatoire** avant chaque événement à pic connu |
 
 ### 2.7 Tests d'accessibilité
@@ -110,7 +110,7 @@ flowchart TB
 | **DAST** | Attaque de l'application déployée (OWASP Top 10, en-têtes) | 0 alerte haute | Bloque le staging |
 | **Test d'intrusion** | Audit manuel par un tiers | Constats critiques corrigés | Bloque la première mise en production |
 
-*Le détail des scans et du traitement des constats est dans [US-07.2](../securite/US-07.2_controles_scans.md).*
+*Le détail des scans et du traitement des constats est dans [US-07.2](../securite/controles-et-scans.md).*
 
 ### 2.9 Tests de résilience et de restauration
 
@@ -146,3 +146,7 @@ flowchart TB
 | Interopérabilité (durable) | Intégration, contrat |
 
 Chaque attribut est couvert par **au moins deux** types de tests, dont au moins un **automatisé dans le pipeline**.
+
+---
+
+[← Architecture de l'orchestrateur (Kubernetes)](architecture-kubernetes.md) · [Sommaire](../README.md) · [Positionnement des tests dans le pipeline CI/CD →](tests-dans-le-pipeline.md)

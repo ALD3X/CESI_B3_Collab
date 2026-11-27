@@ -1,8 +1,8 @@
-# US-03.3 — Vérification de la couverture du besoin
+# Vérification de la couverture du besoin
 
-> **Jira :** [SCRUM-22](https://maalsi25.atlassian.net/browse/SCRUM-22) · **Epic :** EPIC 03, Architecture macroscopique
+> **Story :** US-03.3 · **Jira :** [SCRUM-22](https://maalsi25.atlassian.net/browse/SCRUM-22) · **Epic :** EPIC 03, Architecture macroscopique
 > **Responsable :** Membre C · **Binôme :** Membre A
-> **Entrées :** [US-01.1, synthèse du besoin](../cadrage/US-01.1_synthese_besoin.md) · [US-03.1, composants](US-03.1_composants_fonctionnels.md) · [US-03.2, architecture](US-03.2_architecture_macroscopique.md)
+> **Entrées :** [US-01.1, synthèse du besoin](../cadrage/synthese-du-besoin.md) · [US-03.1, composants](composants-fonctionnels.md) · [US-03.2, architecture](architecture-macroscopique.md)
 
 **But :** rapprocher **chaque besoin** (F-xx) et **chaque contrainte** (C-xx) des composants de l'architecture, pour vérifier que rien n'est oublié et identifier les dépendances externes et les hypothèses.
 
@@ -112,3 +112,7 @@
 | H-7 | Les numéros du fanzine sont **téléversés manuellement** via le back-office (pas d'intégration avec la station PAO) | Faible : on pourrait automatiser plus tard |
 
 > **Prochaine étape :** la dépendance **D-1** et les hypothèses **E-2 / H-5** sont à valider en priorité avec la direction, car elles ont le plus d'impact sur le périmètre et la charge.
+
+---
+
+[← Architecture macroscopique](architecture-macroscopique.md) · [Sommaire](../README.md) · [Sélection des deux solutions CI/CD et des critères →](../cicd/candidats-et-criteres.md)

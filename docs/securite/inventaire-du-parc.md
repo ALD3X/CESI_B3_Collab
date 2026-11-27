@@ -1,8 +1,8 @@
-# US-07.1 — Démarche d'inventaire applicatif
+# Démarche d'inventaire applicatif
 
-> **Jira :** [SCRUM-34](https://maalsi25.atlassian.net/browse/SCRUM-34) · **Epic :** EPIC 07, Politique de sécurité et amélioration continue
+> **Story :** US-07.1 · **Jira :** [SCRUM-34](https://maalsi25.atlassian.net/browse/SCRUM-34) · **Epic :** EPIC 07, Politique de sécurité et amélioration continue
 > **Responsable :** Membre C · **Binôme :** Membre D
-> **Entrées :** [US-01.1, synthèse du besoin](../cadrage/US-01.1_synthese_besoin.md) §1 (état du SI) · [US-03.2, architecture](../architecture/US-03.2_architecture_macroscopique.md)
+> **Entrées :** [US-01.1, synthèse du besoin](../cadrage/synthese-du-besoin.md) §1 (état du SI) · [US-03.2, architecture](../architecture/architecture-macroscopique.md)
 
 **But :** savoir **ce qu'il faut protéger**. On ne sécurise pas ce qu'on ne connaît pas : l'inventaire est la **première brique** de la politique de sécurité. Il doit couvrir l'existant, la nouvelle plateforme **et** les applications futures.
 
@@ -73,7 +73,7 @@ flowchart LR
 
 ### 2.2 Nouvelle plateforme
 
-Les actifs reprennent les composants de [US-03.2](../architecture/US-03.2_architecture_macroscopique.md). Les plus critiques sont :
+Les actifs reprennent les composants de [US-03.2](../architecture/architecture-macroscopique.md). Les plus critiques sont :
 
 | Actif | D | I | C | P | Justification |
 |---|---|---|---|---|---|
@@ -109,3 +109,7 @@ Les actifs reprennent les composants de [US-03.2](../architecture/US-03.2_archit
 4. [Priorité moyenne] **Serveur de fichiers :** supprimer le point de défaillance unique (réplication, ou migration vers un stockage managé en UE).
 5. [Priorité moyenne] **Échanges CSV :** les remplacer par le connecteur IN-1 (flux authentifiés et tracés).
 6. [Priorité basse] **Shadow IT :** recensement lors des entretiens, puis validation ou retrait.
+
+---
+
+[← Positionnement des tests dans le pipeline CI/CD](../kubernetes-et-tests/tests-dans-le-pipeline.md) · [Sommaire](../README.md) · [Contrôles et scans de sécurité →](controles-et-scans.md)

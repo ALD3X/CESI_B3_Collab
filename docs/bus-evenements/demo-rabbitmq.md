@@ -1,8 +1,8 @@
-# US-05.2 — Démonstration de la première technologie : RabbitMQ
+# Démonstration de la première technologie : RabbitMQ
 
-> **Jira :** [SCRUM-28](https://maalsi25.atlassian.net/browse/SCRUM-28) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
+> **Story :** US-05.2 · **Jira :** [SCRUM-28](https://maalsi25.atlassian.net/browse/SCRUM-28) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
 > **Responsable :** Membre C · **Binôme :** Membre B
-> **Scénario de référence :** [US-05.1](US-05.1_domaine_et_criteres.md) §4 · **Application :** [boutique de démonstration](../../README.md) · **Scénario :** [`tools/scenarios/bus.py`](../../tools/scenarios/bus.py) · **Banc de débit :** [`tools/scenarios/banc-brokers/`](../../tools/scenarios/banc-brokers/)
+> **Scénario de référence :** [US-05.1](domaine-et-criteres.md) §4 · **Application :** [boutique de démonstration](../../README.md) · **Scénario :** [`tools/scenarios/bus.py`](../../tools/scenarios/bus.py) · **Banc de débit :** [`tools/scenarios/banc-brokers/`](../../tools/scenarios/banc-brokers/)
 
 ---
 
@@ -85,3 +85,7 @@ flowchart LR
 | **Mode transactionnel** | Il retient aussi les acquittements jusqu'au commit : il faut un **canal séparé** pour lire (bug rencontré et corrigé pendant la démo) |
 | **Pas de rejeu** | Un message acquitté est supprimé. Un nouveau service ne voit que les messages **futurs**. *Atténuation possible :* les **RabbitMQ Streams** (depuis la version 3.9) offrent un journal relisible, au prix d'un second modèle à maîtriser |
 | **Bibliothèque `pika` synchrone** | Simple à apprendre, mais pas de confirmations asynchrones en mode bloquant. En production, préférer un client asynchrone |
+
+---
+
+[← Choix du domaine technique et des critères de comparaison](domaine-et-criteres.md) · [Sommaire](../README.md) · [Démonstration de la seconde technologie : Apache Kafka →](demo-kafka.md)

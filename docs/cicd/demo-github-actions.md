@@ -1,8 +1,8 @@
-# US-04.2 — Démonstration du premier outil : GitHub Actions
+# Démonstration du premier outil : GitHub Actions
 
-> **Jira :** [SCRUM-24](https://maalsi25.atlassian.net/browse/SCRUM-24) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
+> **Story :** US-04.2 · **Jira :** [SCRUM-24](https://maalsi25.atlassian.net/browse/SCRUM-24) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
 > **Responsable :** Membre B · **Binôme :** Membre D
-> **Scénario de référence :** [US-04.1](US-04.1_candidats_et_criteres.md) · **Application :** [boutique de démonstration](../../README.md) · **Pipeline :** [`.github/workflows/boutique.yml`](../../.github/workflows/boutique.yml)
+> **Scénario de référence :** [US-04.1](candidats-et-criteres.md) · **Application :** [boutique de démonstration](../../README.md) · **Pipeline :** [`.github/workflows/boutique.yml`](../../.github/workflows/boutique.yml)
 
 ---
 
@@ -74,7 +74,7 @@ flowchart LR
 | Test de bout en bout (boutique complète, 9 vérifications) | OK en 44 s |
 | Scénarios `regression` et `secret` (mêmes commandes, exécutées via Jenkins) | Livraison bloquée, comme attendu |
 
-> **Incident utile pour la démonstration :** au premier passage, le **scan des images a bloqué la livraison**. Spring Boot 3.4 embarquait des failles critiques (Tomcat, Spring Framework, Spring Security) corrigées seulement dans Spring Framework 7. Le pipeline a donc imposé la **migration vers Spring Boot 4.0.10**. Une faille non exploitable de l'image PostgreSQL (`gosu`) est acceptée, avec justification et date d'expiration, dans `.trivyignore.yaml` (voir [US-07.4](../securite/US-07.4_amelioration_continue.md)).
+> **Incident utile pour la démonstration :** au premier passage, le **scan des images a bloqué la livraison**. Spring Boot 3.4 embarquait des failles critiques (Tomcat, Spring Framework, Spring Security) corrigées seulement dans Spring Framework 7. Le pipeline a donc imposé la **migration vers Spring Boot 4.0.10**. Une faille non exploitable de l'image PostgreSQL (`gosu`) est acceptée, avec justification et date d'expiration, dans `.trivyignore.yaml` (voir [US-07.4](../securite/amelioration-continue.md)).
 >
 > Ces étapes ont été exécutées **en local et dans Jenkins avec les mêmes commandes et les mêmes images** que le workflow. L'exécution **sur les runners GitHub** reste à faire par Membre B lors du premier push (les mesures sont à reporter en section 5).
 
@@ -108,3 +108,7 @@ flowchart LR
 - **Actions tierces = risque de chaîne d'approvisionnement** : une action compromise exécute du code dans le pipeline. Bonne pratique : figer les actions par **SHA de commit** plutôt que par tag (`@v4`).
 - **Quotas** de minutes gratuites sur les dépôts privés (2 000 min par mois en offre gratuite), au-delà facturé à la minute.
 - **Dépendance forte à GitHub** (forge, CI, registre) : migrer vers une autre forge plus tard est coûteux.
+
+---
+
+[← Sélection des deux solutions CI/CD et des critères](candidats-et-criteres.md) · [Sommaire](../README.md) · [Démonstration du second outil : Jenkins →](demo-jenkins.md)

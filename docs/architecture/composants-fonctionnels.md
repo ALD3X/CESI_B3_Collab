@@ -1,8 +1,8 @@
-# US-03.1 — Composants fonctionnels
+# Composants fonctionnels
 
-> **Jira :** [SCRUM-20](https://maalsi25.atlassian.net/browse/SCRUM-20) · **Epic :** EPIC 03, Architecture macroscopique
+> **Story :** US-03.1 · **Jira :** [SCRUM-20](https://maalsi25.atlassian.net/browse/SCRUM-20) · **Epic :** EPIC 03, Architecture macroscopique
 > **Responsable :** Membre A · **Binôme :** Membre C
-> **Entrées :** [US-01.1, synthèse du besoin](../cadrage/US-01.1_synthese_besoin.md) · [US-02.1, attributs de qualité](../qualite_devsecops/US-02.1_attributs_qualite.md)
+> **Entrées :** [US-01.1, synthèse du besoin](../cadrage/synthese-du-besoin.md) · [US-02.1, attributs de qualité](../qualite-devsecops/attributs-de-qualite.md)
 
 **But :** découper la plateforme `petitemaisonepouvante.com` en **composants cohérents**, chacun responsable d'un domaine métier, pour couvrir l'ensemble des besoins.
 
@@ -167,3 +167,7 @@ Le découpage prévoit dès maintenant la place des évolutions annoncées, sans
 | **Enchères** (V2) | Service d'enchères | EN-3, SV-3, SM-3, SP-3, TR-1 |
 | **Diffusion des productions Evil Ed** (V2) | Service de diffusion vidéo | SC-1 (droits), TR-2, EN-1 (diffusion) |
 | **Streaming du festival en accès restreint** (V3) | Service de billetterie virtuelle + diffusion | SV-2, SV-3, contrôle des places simultanées |
+
+---
+
+[← Métiers impliqués et leurs interactions](../qualite-devsecops/metiers-et-interactions.md) · [Sommaire](../README.md) · [Architecture macroscopique →](architecture-macroscopique.md)

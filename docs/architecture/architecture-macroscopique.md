@@ -1,8 +1,8 @@
-# US-03.2 — Architecture macroscopique
+# Architecture macroscopique
 
-> **Jira :** [SCRUM-21](https://maalsi25.atlassian.net/browse/SCRUM-21) · **Epic :** EPIC 03, Architecture macroscopique
+> **Story :** US-03.2 · **Jira :** [SCRUM-21](https://maalsi25.atlassian.net/browse/SCRUM-21) · **Epic :** EPIC 03, Architecture macroscopique
 > **Responsable :** Membre A · **Binôme :** Membre C
-> **Entrée :** [US-03.1, composants fonctionnels](US-03.1_composants_fonctionnels.md) (identifiants UI-x, EN-x, SV-x, SC-x, SM-x, SP-x, TR-x, IN-x)
+> **Entrée :** [US-03.1, composants fonctionnels](composants-fonctionnels.md) (identifiants UI-x, EN-x, SV-x, SC-x, SM-x, SP-x, TR-x, IN-x)
 
 **But :** fournir à la direction un **schéma lisible** des composants de `petitemaisonepouvante.com` et de leurs échanges, **indépendant des technologies**.
 
@@ -246,3 +246,7 @@ sequenceDiagram
 | **Zone applicative** | EN-2, EN-3, services métier, TR-1 | Accessible **uniquement** par la passerelle |
 | **Zone données** | Bases des services, TR-2, entrepôt analytique | Accessible **uniquement** par le service propriétaire |
 | **Zone intégration** | IN-1 à IN-4 | Flux sortants maîtrisés vers le SI existant et les prestataires |
+
+---
+
+[← Composants fonctionnels](composants-fonctionnels.md) · [Sommaire](../README.md) · [Vérification de la couverture du besoin →](couverture-du-besoin.md)

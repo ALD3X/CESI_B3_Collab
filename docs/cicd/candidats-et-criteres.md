@@ -1,8 +1,8 @@
-# US-04.1 — Sélection des deux solutions CI/CD et des critères
+# Sélection des deux solutions CI/CD et des critères
 
-> **Jira :** [SCRUM-23](https://maalsi25.atlassian.net/browse/SCRUM-23) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
+> **Story :** US-04.1 · **Jira :** [SCRUM-23](https://maalsi25.atlassian.net/browse/SCRUM-23) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
 > **Responsable :** Membre B · **Binôme :** Membre D
-> **Entrées :** [US-02.1, attributs de qualité](../qualite_devsecops/US-02.1_attributs_qualite.md) · [US-02.2, cycle DevSecOps](../qualite_devsecops/US-02.2_cycle_devsecops.md) · [US-02.3, métiers](../qualite_devsecops/US-02.3_metiers_interactions.md)
+> **Entrées :** [US-02.1, attributs de qualité](../qualite-devsecops/attributs-de-qualite.md) · [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) · [US-02.3, métiers](../qualite-devsecops/metiers-et-interactions.md)
 
 ---
 
@@ -30,7 +30,7 @@
 
 ## 2. Critères de comparaison
 
-Chaque critère est relié à un enjeu du projet et noté de 1 (faible) à 5 (excellent) dans [US-04.4](US-04.4_conclusion_comparative.md).
+Chaque critère est relié à un enjeu du projet et noté de 1 (faible) à 5 (excellent) dans [US-04.4](comparaison-et-choix.md).
 
 | # | Critère | Ce qu'on évalue | Enjeu du projet | Poids |
 |---|---|---|---|---|
@@ -53,7 +53,7 @@ La **boutique de démonstration** ([`apps/` et `infra/`](../../README.md)) : un 
 
 ### 3.2 Étapes du pipeline de référence
 
-Ces étapes reprennent les étapes 3 à 6 du [cycle DevSecOps (US-02.2)](../qualite_devsecops/US-02.2_cycle_devsecops.md) :
+Ces étapes reprennent les étapes 3 à 6 du [cycle DevSecOps (US-02.2)](../qualite-devsecops/cycle-devsecops.md) :
 
 ```mermaid
 flowchart LR
@@ -97,4 +97,8 @@ Pour chaque outil, on consigne :
 - le **comportement en cas d'échec** : scénarios `regression` (test métier cassé) et `secret` (jeton commité), via `tools/demo/scenario.sh` ;
 - les **points de friction** rencontrés.
 
-Résultats : [US-04.2](US-04.2_demo_github_actions.md) · [US-04.3](US-04.3_demo_jenkins.md) · [US-04.4](US-04.4_conclusion_comparative.md)
+Résultats : [US-04.2](demo-github-actions.md) · [US-04.3](demo-jenkins.md) · [US-04.4](comparaison-et-choix.md)
+
+---
+
+[← Vérification de la couverture du besoin](../architecture/couverture-du-besoin.md) · [Sommaire](../README.md) · [Démonstration du premier outil : GitHub Actions →](demo-github-actions.md)

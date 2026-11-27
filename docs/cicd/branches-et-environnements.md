@@ -1,6 +1,6 @@
-# US-04.5 — Branches, environnements et chaîne de livraison (dev → accp → prod)
+# Branches, environnements et chaîne de livraison (dev → accp → prod)
 
-> **Epic :** EPIC 04, CI/CD · **Entrées :** [US-02.2, cycle DevSecOps](../qualite_devsecops/US-02.2_cycle_devsecops.md) · [US-04.4, choix CI/CD](US-04.4_conclusion_comparative.md) · [US-06.3, tests dans le pipeline](../environnement_tests/US-06.3_tests_pipeline.md)
+> **Story :** US-04.5 · **Epic :** EPIC 04, CI/CD · **Entrées :** [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) · [US-04.4, choix CI/CD](comparaison-et-choix.md) · [US-06.3, tests dans le pipeline](../kubernetes-et-tests/tests-dans-le-pipeline.md)
 > **Mise en œuvre :** [`.github/workflows/boutique.yml`](../../.github/workflows/boutique.yml) · [`Jenkinsfile`](../../Jenkinsfile) · scripts communs [`infra/ci/images.sh`](../../infra/ci/images.sh) et [`infra/ci/deployer.sh`](../../infra/ci/deployer.sh) · surcouches [`infra/k8s/overlays/`](../../infra/k8s/overlays/)
 
 **But :** livrer la boutique en passant par trois environnements, chacun associé à une branche Git, avec les mêmes garanties sur GitHub Actions et sur Jenkins.
@@ -73,7 +73,7 @@ Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seu
 | Tests des applications | `turbo run test` (front et backend, cache turbo) | Front : `turbo run test` ; backend : la même commande Maven dans l'image Maven |
 | Promotion des images | `infra/ci/images.sh` (GHCR) | `infra/ci/images.sh` (registre local) |
 
-> **Constat :** dans un dépôt privé de l'offre gratuite, GitHub refuse à la fois la **protection des branches** et l'**approbation** des environnements (« *Upgrade to GitHub Pro or make this repository public* »). Jenkins offre ces contrôles sans licence, mais il faut l'exploiter. Ce point complète la comparaison de [US-04.4](US-04.4_conclusion_comparative.md).
+> **Constat :** dans un dépôt privé de l'offre gratuite, GitHub refuse à la fois la **protection des branches** et l'**approbation** des environnements (« *Upgrade to GitHub Pro or make this repository public* »). Jenkins offre ces contrôles sans licence, mais il faut l'exploiter. Ce point complète la comparaison de [US-04.4](comparaison-et-choix.md).
 
 ---
 
@@ -116,3 +116,7 @@ Version promue : **`8f4531fb865e`**, construite une seule fois sur `dev`.
 | Reconstruction inutile en recette après une modification du README | La version couvrait tout le dossier de la boutique | Version calculée sur les seules sources des images |
 | Jenkins ne joignait pas le cluster | Jenkins tourne dans un conteneur, hors du réseau du cluster | `connecter-minikube.sh` : réseau Docker du cluster + kubeconfig dédié |
 | Approbation de la production non disponible sur GitHub | Dépôt privé, offre gratuite | Mesure compensatoire (déclenchement manuel limité aux approbateurs). Jenkins : étape `input` native |
+
+---
+
+[← Conclusion comparative CI/CD](comparaison-et-choix.md) · [Sommaire](../README.md) · [Choix du domaine technique et des critères de comparaison →](../bus-evenements/domaine-et-criteres.md)

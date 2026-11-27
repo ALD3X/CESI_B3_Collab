@@ -1,8 +1,8 @@
-# US-04.3 — Démonstration du second outil : Jenkins
+# Démonstration du second outil : Jenkins
 
-> **Jira :** [SCRUM-25](https://maalsi25.atlassian.net/browse/SCRUM-25) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
+> **Story :** US-04.3 · **Jira :** [SCRUM-25](https://maalsi25.atlassian.net/browse/SCRUM-25) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
 > **Responsable :** Membre D · **Binôme :** Membre B
-> **Scénario de référence :** [US-04.1](US-04.1_candidats_et_criteres.md) · **Application :** [boutique de démonstration](../../README.md) · **Pipeline :** [`Jenkinsfile`](../../Jenkinsfile) · **Serveur :** [`infra/jenkins/`](../../infra/jenkins/)
+> **Scénario de référence :** [US-04.1](candidats-et-criteres.md) · **Application :** [boutique de démonstration](../../README.md) · **Pipeline :** [`Jenkinsfile`](../../Jenkinsfile) · **Serveur :** [`infra/jenkins/`](../../infra/jenkins/)
 
 ---
 
@@ -11,7 +11,7 @@
 | Élément | Fichier | Rôle |
 |---|---|---|
 | Pipeline | `Jenkinsfile` | **Mêmes étapes et mêmes outils** que le workflow GitHub Actions. Les étapes lourdes appellent les **mêmes scripts** (`infra/ci/`) |
-| Image Jenkins | `infra/jenkins/Dockerfile` + `plugins.txt` | Jenkins LTS (Java 21), client Docker **et Docker Compose**, 9 plugins installés au build |
+| Image Jenkins | `infra/jenkins/Dockerfile` + `plugins.txt` | Jenkins LTS (Java 25), client Docker **et Docker Compose**, 9 plugins installés au build |
 | Configuration du serveur | `infra/jenkins/casc.yaml` | **Jenkins Configuration as Code** : compte admin, sécurité, et **création automatique du job** (Job DSL). Aucun clic de configuration |
 | Lancement | `infra/jenkins/docker-compose.yml` | Jenkins (port 8090) + **registre d'images local** (équivalent de GHCR) |
 
@@ -127,3 +127,7 @@ Le dépôt de la boutique a été copié dans un dépôt Git autonome, monté da
 | Run trop long en direct | Build vert lancé avant la présentation. En direct, on ne montre que le scénario rouge `secret` (gitleaks échoue en 8 s) |
 
 **Checklist de la veille :** `docker compose up -d --build`, un build complet vert, captures d'écran, vidéo d'1 à 2 min, puis `docker compose stop` (sans `-v`, pour garder le cache).
+
+---
+
+[← Démonstration du premier outil : GitHub Actions](demo-github-actions.md) · [Sommaire](../README.md) · [Conclusion comparative CI/CD →](comparaison-et-choix.md)

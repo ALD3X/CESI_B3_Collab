@@ -1,8 +1,8 @@
-# US-02.1 — Attributs de qualité logicielle
+# Attributs de qualité logicielle
 
-> **Jira :** [SCRUM-17](https://maalsi25.atlassian.net/browse/SCRUM-17) · **Epic :** EPIC 02, Qualité logicielle et démarche DevSecOps
+> **Story :** US-02.1 · **Jira :** [SCRUM-17](https://maalsi25.atlassian.net/browse/SCRUM-17) · **Epic :** EPIC 02, Qualité logicielle et démarche DevSecOps
 > **Responsable :** Membre B · **Binôme :** Membre D
-> **Entrée :** [US-01.1, synthèse du besoin](../cadrage/US-01.1_synthese_besoin.md) (identifiants F-xx = fonctionnalités, C-xx = contraintes)
+> **Entrée :** [US-01.1, synthèse du besoin](../cadrage/synthese-du-besoin.md) (identifiants F-xx = fonctionnalités, C-xx = contraintes)
 
 **But :** montrer à la direction quelles exigences de qualité sont prioritaires pour `petitemaisonepouvante.com`, pourquoi, et comment on les vérifiera.
 
@@ -153,3 +153,7 @@
 - **EPIC 03 (architecture) :** la scalabilité, la disponibilité et l'interopérabilité orientent le découpage en composants (isolation des pannes, bus d'intégration).
 - **EPIC 05 (technologies) :** les critères de comparaison des deux solutions doivent reprendre ces attributs.
 - **EPIC 06 (tests) :** les indicateurs de vérification ci-dessus deviennent des critères d'acceptation des tests.
+
+---
+
+[← Mise en place du suivi commun](../cadrage/suivi-du-projet.md) · [Sommaire](../README.md) · [Cycle de vie DevSecOps →](cycle-devsecops.md)

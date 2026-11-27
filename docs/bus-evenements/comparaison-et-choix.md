@@ -1,8 +1,8 @@
-# US-05.4 — Argumentation du choix technique : bus d'événements
+# Argumentation du choix technique : bus d'événements
 
-> **Jira :** [SCRUM-30](https://maalsi25.atlassian.net/browse/SCRUM-30) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
+> **Story :** US-05.4 · **Jira :** [SCRUM-30](https://maalsi25.atlassian.net/browse/SCRUM-30) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
 > **Responsable :** Membre C · **Contributeur :** Membre A
-> **Entrées :** [US-05.1, critères](US-05.1_domaine_et_criteres.md) · [US-05.2, démo RabbitMQ](US-05.2_demo_rabbitmq.md) · [US-05.3, démo Kafka](US-05.3_demo_kafka.md)
+> **Entrées :** [US-05.1, critères](domaine-et-criteres.md) · [US-05.2, démo RabbitMQ](demo-rabbitmq.md) · [US-05.3, démo Kafka](demo-kafka.md)
 
 ---
 
@@ -51,7 +51,7 @@
 
 ## 3. Notation pondérée
 
-Notes de 1 (faible) à 5 (excellent). Les poids sont fixés dans [US-05.1](US-05.1_domaine_et_criteres.md) §3, **avant** les démos.
+Notes de 1 (faible) à 5 (excellent). Les poids sont fixés dans [US-05.1](domaine-et-criteres.md) §3, **avant** les démos.
 
 | Critère | Poids | RabbitMQ | Kafka | Justification |
 |---|---|---|---|---|
@@ -98,3 +98,7 @@ Cette recommandation **n'est pas universelle**. Kafka (ou les Streams RabbitMQ, 
 - les **recommandations** (F-07) évoluent vers un modèle qui doit **relire l'historique** en continu (*event sourcing*).
 
 > **Message pour la soutenance :** *« Les deux brokers ont passé le même scénario sans perdre une commande. Kafka est plus puissant et garde l'historique, mais pour notre volumétrie et notre équipe, RabbitMQ apporte la même fiabilité, avec moins de ressources et beaucoup moins de complexité. Et grâce à Spring Cloud Stream, le code de la boutique est le même pour les deux : on l'a basculé en trente secondes. Nous gardons les événements archivés et les contrats versionnés pour pouvoir basculer vers Kafka si la V2 l'exige. »*
+
+---
+
+[← Démonstration de la seconde technologie : Apache Kafka](demo-kafka.md) · [Sommaire](../README.md) · [Comparaison complémentaire : passerelle d'API (Spring Cloud Gateway et Kong) →](../passerelle-api/spring-cloud-gateway-ou-kong.md)

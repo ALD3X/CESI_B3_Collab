@@ -1,8 +1,8 @@
-# US-05.1 — Choix du domaine technique et des critères de comparaison
+# Choix du domaine technique et des critères de comparaison
 
-> **Jira :** [SCRUM-27](https://maalsi25.atlassian.net/browse/SCRUM-27) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
+> **Story :** US-05.1 · **Jira :** [SCRUM-27](https://maalsi25.atlassian.net/browse/SCRUM-27) · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives
 > **Responsable :** Membre C · **Binôme :** Membre B
-> **Entrées :** [US-03.2, architecture](../architecture/US-03.2_architecture_macroscopique.md) · [US-02.1, attributs de qualité](../qualite_devsecops/US-02.1_attributs_qualite.md) · [US-01.1, besoin](../cadrage/US-01.1_synthese_besoin.md)
+> **Entrées :** [US-03.2, architecture](../architecture/architecture-macroscopique.md) · [US-02.1, attributs de qualité](../qualite-devsecops/attributs-de-qualite.md) · [US-01.1, besoin](../cadrage/synthese-du-besoin.md)
 
 **But :** comparer **deux technologies qui remplissent la même fonction** dans l'application, avec des critères fixés **avant** les démonstrations.
 
@@ -16,7 +16,7 @@
 | Serveur d'identité | EN-3 Identité et accès | Sécurité forte (C-03), MFA | Démo surtout faite d'écrans de configuration | Non |
 | Framework backend | Services métier | Maintenabilité (C-11) | Les écarts n'apparaissent qu'à grande échelle | Non |
 | Kubernetes local | Environnement managé | Déjà traité par l'EPIC 06 | OK | Non (doublon avec EPIC 06) |
-| Passerelle d'API *(hors exemples de la consigne)* | EN-2 Passerelle d'entrée | Sécurité forte (C-03), pics de charge, point d'entrée unique devant les services Spring Boot | Scénario visuel (jetons refusés, rafale, panne) | **En complément** : [US-05.5](US-05.5_passerelle_api.md), Spring Cloud Gateway contre Kong |
+| Passerelle d'API *(hors exemples de la consigne)* | EN-2 Passerelle d'entrée | Sécurité forte (C-03), pics de charge, point d'entrée unique devant les services Spring Boot | Scénario visuel (jetons refusés, rafale, panne) | **En complément** : [US-05.5](../passerelle-api/spring-cloud-gateway-ou-kong.md), Spring Cloud Gateway contre Kong |
 
 ### Pourquoi le broker de messages
 
@@ -75,3 +75,7 @@ Le cas d'usage est l'événement **« commande payée »** de US-03.2 §3.1. Il 
 | Empreinte | Mémoire au repos, taille de l'image, démarrage à froid | K7 |
 
 Le scénario est **automatisé** et joué **sur la boutique de démonstration** ([`tools/scenarios/bus.py`](../../tools/scenarios/bus.py)) : de vraies commandes passées par le front, des services Spring Boot dont le code est identique pour les deux brokers (Spring Cloud Stream). Chaque étape compare le résultat obtenu au résultat attendu. La démo est donc **rejouable à l'identique** le jour J.
+
+---
+
+[← Branches, environnements et chaîne de livraison (dev → accp → prod)](../cicd/branches-et-environnements.md) · [Sommaire](../README.md) · [Démonstration de la première technologie : RabbitMQ →](demo-rabbitmq.md)

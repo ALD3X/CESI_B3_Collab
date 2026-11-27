@@ -1,8 +1,8 @@
-# US-06.3 — Positionnement des tests dans le pipeline CI/CD
+# Positionnement des tests dans le pipeline CI/CD
 
-> **Jira :** [SCRUM-33](https://maalsi25.atlassian.net/browse/SCRUM-33) · **Epic :** EPIC 06, Environnement managé et stratégie de tests
+> **Story :** US-06.3 · **Jira :** [SCRUM-33](https://maalsi25.atlassian.net/browse/SCRUM-33) · **Epic :** EPIC 06, Environnement managé et stratégie de tests
 > **Responsable :** Membre D · **Binôme :** Membre B
-> **Entrées :** [US-06.2, catégories de tests](US-06.2_categories_tests.md) · [US-04.4, choix CI/CD](../cicd/US-04.4_conclusion_comparative.md) · [US-02.2, cycle DevSecOps](../qualite_devsecops/US-02.2_cycle_devsecops.md)
+> **Entrées :** [US-06.2, catégories de tests](categories-de-tests.md) · [US-04.4, choix CI/CD](../cicd/comparaison-et-choix.md) · [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md)
 
 **But :** placer chaque famille de tests **à l'étape du pipeline où elle est la plus utile**, et rendre explicites les **conséquences d'un échec**. Le focus est la **stratégie**, pas le catalogue d'outils.
 
@@ -85,7 +85,7 @@ Le pipeline de démonstration de l'EPIC 04 livre la **boutique de démonstration
 | ② | Scan des 9 images (Trivy), avec registre d'exceptions justifiées et datées | A bloqué Spring Boot 3.4 (failles critiques) et imposé la migration vers Spring Boot 4.0 |
 | ② | **Test de bout en bout** : la boutique complète démarre, un parcours client est joué (connexion, commande, événement reçu par le bus, accès refusé sans jeton, seconde passerelle) | 9 vérifications en 44 s |
 | ③ | Résilience (en démo, hors pipeline) : panne d'un service, d'un consommateur, rejeu, message poison | Scénarios `tools/scenarios/bus.py` et `tools/scenarios/passerelle.py` (US-05.2 à US-05.5) |
-| ⑤ | Sondes de santé, auto-réparation, mise à jour sans coupure | Démo Kubernetes ([US-06.1](US-06.1_architecture_orchestrateur.md)) |
+| ⑤ | Sondes de santé, auto-réparation, mise à jour sans coupure | Démo Kubernetes ([US-06.1](architecture-kubernetes.md)) |
 
 **Pistes pour aller plus loin :** les scénarios de panne (`tools/scenarios/passerelle.py`) sont automatisés et rejouables : ils peuvent devenir l'étape ③ « tests de résilience » du pipeline, exécutée chaque nuit.
 
@@ -95,5 +95,9 @@ Le pipeline de démonstration de l'EPIC 04 livre la **boutique de démonstration
 
 - **Un test bloquant ne se contourne pas.** Toute exception (faux positif SAST, CVE sans correctif) est **documentée**, validée par le Security Champion, et a une **date d'expiration**.
 - **Les tests instables** (*flaky*) sont mis en quarantaine **et** une story de correction est créée : un pipeline auquel on ne croit plus n'arrête plus rien.
-- **Les seuils évoluent** à chaque rétrospective, en fonction des incidents de production (boucle d'amélioration continue, [US-07.4](../securite/US-07.4_amelioration_continue.md)).
+- **Les seuils évoluent** à chaque rétrospective, en fonction des incidents de production (boucle d'amélioration continue, [US-07.4](../securite/amelioration-continue.md)).
 - **Durée totale ① + ② inférieure à 15 min**, sinon les développeurs contournent le pipeline. Les tests lents sont déplacés vers ③ ou ④.
+
+---
+
+[← Catégories de tests](categories-de-tests.md) · [Sommaire](../README.md) · [Démarche d'inventaire applicatif →](../securite/inventaire-du-parc.md)

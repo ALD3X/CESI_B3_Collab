@@ -1,8 +1,8 @@
-# US-02.3 — Métiers impliqués et leurs interactions
+# Métiers impliqués et leurs interactions
 
-> **Jira :** [SCRUM-19](https://maalsi25.atlassian.net/browse/SCRUM-19) · **Epic :** EPIC 02, Qualité logicielle et démarche DevSecOps
+> **Story :** US-02.3 · **Jira :** [SCRUM-19](https://maalsi25.atlassian.net/browse/SCRUM-19) · **Epic :** EPIC 02, Qualité logicielle et démarche DevSecOps
 > **Responsable :** Membre D · **Binôme :** Membre B
-> **Entrées :** [US-02.2, cycle DevSecOps](US-02.2_cycle_devsecops.md) · [US-01.1, synthèse du besoin](../cadrage/US-01.1_synthese_besoin.md)
+> **Entrées :** [US-02.2, cycle DevSecOps](cycle-devsecops.md) · [US-01.1, synthèse du besoin](../cadrage/synthese-du-besoin.md)
 
 **But :** montrer à la direction **qui intervient à chaque étape** du cycle DevSecOps, comment ces métiers collaborent, et **quels recrutements** prévoir au regard de l'équipe actuelle.
 
@@ -150,3 +150,7 @@ flowchart TB
 4. [V2] **Pour la V2** (enchères, vidéo) : un second développeur et éventuellement un ingénieur data pour les recommandations
 
 > **Cumul de rôles :** dans une petite équipe, un même individu peut tenir plusieurs rôles (par exemple architecte + Security Champion). Ce qui compte est que **chaque responsabilité du tableau RACI ait un titulaire identifié**.
+
+---
+
+[← Cycle de vie DevSecOps](cycle-devsecops.md) · [Sommaire](../README.md) · [Composants fonctionnels →](../architecture/composants-fonctionnels.md)
