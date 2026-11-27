@@ -1,7 +1,7 @@
 {
   "name": "petite-maison-epouvante",
   "private": true,
-  "description": "Monorepo de la plateforme La Petite Maison de l'Épouvante : applications (apps/), infrastructure (infra/), outils de démonstration (tools/) et documentation (docs/)",
+  "description": "Monorepo de Petite Maison Epouvante",
   "workspaces": [
     "apps/*"
   ],
