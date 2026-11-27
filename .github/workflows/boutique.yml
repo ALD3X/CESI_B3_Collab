@@ -10,9 +10,10 @@
 name: CI/CD boutique
 
 on:
+  # Pas de filtre « paths » sur les pushs : une promotion (dev → accp → prod) ne modifie aucun fichier,
+  # et GitHub ignorerait alors le push (constaté lors de la création de la branche accp).
   push:
     branches: [dev, accp, prod]
-    paths: ["demos/boutique/**", ".github/workflows/boutique.yml"]
   pull_request:
     branches: [dev, accp, prod]
     paths: ["demos/boutique/**", ".github/workflows/boutique.yml"]
