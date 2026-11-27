@@ -4,7 +4,7 @@
 //
 // Branches et environnements :
 //   feature/* : contrôles qualité + images + test de bout en bout (aucun déploiement)
-//   dev       : images construites UNE fois (v-<version>), publiées, déployées en dev (Docker Compose)
+//   dev       : intégration continue : images construites UNE fois (v-<version>) et publiées, AUCUN déploiement
 //   accp      : MÊMES images promues (pas de reconstruction), déployées en recette (Kubernetes), recette validée
 //   prod      : version recettée uniquement, APPROBATION manuelle, déploiement progressif (Kubernetes),
 //               test de fumée, retour arrière automatique
@@ -101,15 +101,7 @@ pipeline {
             }
         }
 
-        // ---------- 3. Déploiements ----------
-        stage('Déploiement dev') {
-            when { branch 'dev' }
-            steps {
-                sh 'sh infra/ci/deployer.sh dev'
-                sh 'sh infra/ci/images.sh etiqueter dev'
-            }
-        }
-
+        // ---------- 3. Déploiement continu : à partir de la recette (dev ne déploie rien) ----------
         stage('Recette (accp)') {
             when { branch 'accp' }
             steps {

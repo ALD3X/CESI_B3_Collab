@@ -1,6 +1,5 @@
 #!/bin/sh
 # Déploiement d'un environnement puis test de fumée, commun aux deux pipelines.
-#   sh infra/ci/deployer.sh dev    → Docker Compose (projet boutique-dev, front sur le port 3100)
 #   sh infra/ci/deployer.sh accp   → Kubernetes, namespaces accp-*, iso-production avec 1 instance par service
 #   sh infra/ci/deployer.sh prod   → Kubernetes, namespaces prod-*, 2 instances, RETOUR ARRIÈRE automatique si échec
 #
@@ -11,7 +10,7 @@
 set -eu
 cd "$(dirname "$0")/../.."
 
-ENV="${1:?environnement : dev, accp ou prod}"
+ENV="${1:?environnement : accp ou prod}"
 R="${REGISTRE:-}"
 TAG="${TAG:?version des images à déployer}"
 IMAGES="front passerelle identite catalogue commandes notifications expedition postgres"
@@ -23,15 +22,6 @@ test_de_fumee_k8s() {
 }
 
 case "$ENV" in
-  dev)
-    DC="docker compose -p boutique-dev -f infra/compose/compose.yaml -f infra/compose/dev.yml --profile rabbit"
-    echo "Déploiement dev : ${R}boutique-*:$TAG (Docker Compose)"
-    $DC up -d --no-build --wait --wait-timeout 300
-    docker run --rm -i --network boutique-dev_default -e FRONT=http://front:8080 python:3.12-alpine \
-      python - < infra/ci/smoke.py
-    echo "Environnement dev disponible : http://localhost:3100"
-    ;;
-
   accp|prod)
     # 1. Images disponibles pour le cluster : soit il les tire lui-même du registre privé (GHCR),
     #    soit elles sont chargées directement dans ses nœuds (registre local inaccessible au cluster)
@@ -90,7 +80,7 @@ case "$ENV" in
     ;;
 
   *)
-    echo "Environnement inconnu : $ENV (dev, accp ou prod)"
+    echo "Environnement inconnu : $ENV (accp ou prod ; la branche dev ne déploie rien)"
     exit 1
     ;;
 esac

@@ -5,13 +5,13 @@
 #   pipeline.yml            ce fichier : déclencheurs (push, PR) et enchaînement des étapes
 #   controles.yml           1. qualité et sécurité du code : 4 jobs en parallèle
 #   images.yml              2. images : construites UNE fois, scannées, testées de bout en bout, publiées sur GHCR
-#   deploiement.yml         3. déploiement d'un environnement à partir des images publiées sur GHCR
+#   deploiement.yml         3. déploiement en recette ou en production à partir des images publiées sur GHCR
 #   recette-validee.yml     contrôle : seule une version recettée peut aller en production
 #   mise-en-production.yml  déclenchement manuel de la mise en production (approbateurs)
 #
 # Branches et environnements :
 #   feature/* → PR vers dev : contrôles + images + test de bout en bout (aucune publication, aucun déploiement)
-#   dev  (par défaut) : images v-<version> publiées sur GHCR, déployées en dev
+#   dev  (par défaut) : intégration continue : images v-<version> publiées sur GHCR, AUCUN déploiement
 #   accp (recette)    : MÊMES images (pas de reconstruction), déployées en recette, étiquetées accp-<version>
 #   prod (production) : contrôle de la version recettée ; la mise en production passe par mise-en-production.yml
 name: CI/CD boutique
@@ -47,19 +47,6 @@ jobs:
     with:
       publier: ${{ github.event_name == 'push' }}
       promotion: ${{ github.ref_name == 'accp' || github.ref_name == 'prod' }}
-
-  dev:
-    name: "Dev"
-    needs: images
-    if: github.event_name == 'push' && github.ref_name == 'dev'
-    uses: ./.github/workflows/deploiement.yml
-    permissions:
-      contents: read
-      packages: write
-    with:
-      environnement: dev
-      version: ${{ needs.images.outputs.version }}
-    secrets: inherit
 
   recette:
     name: "Recette"

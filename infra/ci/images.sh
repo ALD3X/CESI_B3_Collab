@@ -8,7 +8,7 @@
 #   sh infra/ci/images.sh present [ETIQUETTE]  → code 0 si les 9 images portent cette étiquette dans le registre
 #   sh infra/ci/images.sh etiqueter ETIQUETTE  → ajoute ETIQUETTE aux images de la version courante et les pousse
 #
-# Étiquettes : v-VERSION (construite) · dev, accp, prod (déployée) · accp-VERSION (recette réussie) · prod-VERSION
+# Étiquettes : v-VERSION (construite) · accp, prod (déployée) · accp-VERSION (recette réussie) · prod-VERSION
 set -eu
 cd "$(dirname "$0")/../.."
 

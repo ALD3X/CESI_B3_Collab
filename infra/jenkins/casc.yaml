@@ -21,7 +21,7 @@ jobs:
   - script: >
       multibranchPipelineJob('petite-maison-boutique') {
         displayName('Boutique : dev → accp → prod')
-        description('Pipeline CI/CD de la boutique. dev : build + déploiement dev · accp : promotion + recette · prod : approbation + mise en production')
+        description('Pipeline CI/CD de la boutique. dev : build, tests et publication des images (sans déploiement) · accp : promotion + recette · prod : approbation + mise en production')
         branchSources {
           branchSource {
             source {
