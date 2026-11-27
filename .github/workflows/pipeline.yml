@@ -9,6 +9,9 @@
 #   recette-validee.yml     contrôle : seule une version recettée peut aller en production
 #   mise-en-production.yml  déclenchement manuel de la mise en production (approbateurs)
 #
+# accp et prod n'acceptent que des pull requests (dev → accp, accp → prod) : un ruleset GitHub refuse
+# tout push direct, force-push ou suppression de ces branches.
+#
 # Branches et environnements :
 #   feature/* → PR vers dev, et dev (par défaut) : intégration continue UNIQUEMENT : contrôles, build des
 #                       images, scan, test de bout en bout. Aucune publication, aucun déploiement
