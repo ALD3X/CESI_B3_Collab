@@ -1,29 +1,29 @@
-# Pipeline CI/CD de la boutique — GitHub Actions
+# Chaîne CI/CD de la boutique (GitHub Actions) : orchestrateur.
 # Mêmes étapes, mêmes outils et mêmes scripts (infra/ci/*.sh) que le Jenkinsfile.
-# Monorepo turbo : les tests passent par « turbo run test », toutes les commandes partent de la racine.
+#
+# Découpage en workflows réutilisables :
+#   pipeline.yml            ce fichier : déclencheurs (push, PR) et enchaînement des étapes
+#   controles.yml           1. qualité et sécurité du code : 4 jobs en parallèle
+#   images.yml              2. images : construites UNE fois, scannées, testées de bout en bout, publiées sur GHCR
+#   deploiement.yml         3. déploiement d'un environnement à partir des images publiées sur GHCR
+#   recette-validee.yml     contrôle : seule une version recettée peut aller en production
+#   mise-en-production.yml  déclenchement manuel de la mise en production (approbateurs)
 #
 # Branches et environnements :
-#   feature/* → PR vers dev : contrôles qualité + images + test de bout en bout (aucun déploiement)
-#   dev  (par défaut) : images construites UNE fois (v-<version>), publiées, déployées en dev
-#   accp (recette)    : MÊMES images promues (pas de reconstruction), déployées en recette, recette validée
-#   prod (production) : version recettée uniquement, mise en production manuelle par un approbateur,
-#                       déploiement progressif, test de fumée, retour arrière automatique
+#   feature/* → PR vers dev : contrôles + images + test de bout en bout (aucune publication, aucun déploiement)
+#   dev  (par défaut) : images v-<version> publiées sur GHCR, déployées en dev
+#   accp (recette)    : MÊMES images (pas de reconstruction), déployées en recette, étiquetées accp-<version>
+#   prod (production) : contrôle de la version recettée ; la mise en production passe par mise-en-production.yml
 name: CI/CD boutique
 
 on:
   # Pas de filtre « paths » sur les pushs : une promotion (dev → accp → prod) ne modifie aucun fichier,
-  # et GitHub ignorerait alors le push (constaté lors de la création de la branche accp).
+  # et GitHub ignorerait alors le push.
   push:
     branches: [dev, accp, prod]
   pull_request:
     branches: [dev, accp, prod]
-    paths: ["apps/**", "infra/**", "package.json", "package-lock.json", "turbo.json", "Jenkinsfile", ".github/workflows/boutique.yml"]
-  workflow_dispatch:
-    inputs:
-      mise_en_production:
-        description: "Mettre en production la version de la branche prod (approbateurs uniquement)"
-        type: boolean
-        default: false
+    paths: ["apps/**", "infra/**", "package.json", "package-lock.json", "turbo.json", "Jenkinsfile", ".github/workflows/**"]
 
 permissions:
   contents: read
@@ -32,241 +32,55 @@ concurrency:
   group: boutique-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  GITLEAKS_IMAGE: zricethezav/gitleaks:v8.24.3
-  TRIVY_IMAGE: aquasec/trivy:0.65.0
-  SEMGREP_IMAGE: semgrep/semgrep:1.99.0
-  COMPOSE_FILE: infra/compose/compose.yaml   # fichier Docker Compose de la boutique
-
 jobs:
-  # ---------- 1. Qualité et sécurité du code (4 jobs en parallèle, toutes les branches) ----------
-  secrets:
-    name: "Secrets (gitleaks)"
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Recherche de secrets dans le code
-        run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" dir /repo --no-banner --redact
+  controles:
+    name: "Contrôles"
+    uses: ./.github/workflows/controles.yml
 
-  backend:
-    name: "Backend : tests + couverture (Java 25)"
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "25"
-          cache: maven
-          cache-dependency-path: apps/back/**/pom.xml
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "26"
-          cache: npm
-      - run: npm ci
-      - name: Tests unitaires et d'intégration + seuil de couverture (70 % par service)
-        run: npx turbo run test --filter=@boutique/back
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: rapports-backend
-          path: |
-            apps/back/*/target/surefire-reports/
-            apps/back/*/target/site/jacoco/
-
-  front:
-    name: "Front : tests + couverture (React)"
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "26"
-          cache: npm
-      - run: npm ci
-      - name: Tests (Vitest) + seuil de couverture (70 %)
-        run: npx turbo run test --filter=@boutique/front
-
-  sast-sca:
-    name: "SAST (Semgrep) + SCA (Trivy)"
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: SAST - analyse statique de sécurité (bloquant si sévérité ERROR)
-        run: |
-          docker run --rm -v "$PWD:/src" -w /src "$SEMGREP_IMAGE" semgrep scan \
-            --config p/java --config p/react --config p/secrets \
-            --severity ERROR --error --metrics off --exclude "**/target" --exclude node_modules .
-      - name: SCA - vulnérabilités des dépendances Maven et npm (bloquant si CRITIQUE corrigeable)
-        run: |
-          docker run --rm -v "$PWD:/src" "$TRIVY_IMAGE" fs --quiet --scanners vuln \
-            --severity CRITICAL --ignore-unfixed --exit-code 1 /src
-
-  # ---------- 2. Images : construites une seule fois, puis promues ----------
   images:
-    name: "Images : build, scan, test de bout en bout, publication"
-    needs: [secrets, backend, front, sast-sca]
-    runs-on: ubuntu-24.04
+    name: "Images"
+    needs: controles
+    uses: ./.github/workflows/images.yml
     permissions:
       contents: read
       packages: write
-    outputs:
-      tag: ${{ steps.version.outputs.tag }}
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Version du code et registre
-        id: version
-        run: |
-          v=$(sh infra/ci/images.sh version)
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-          echo "tag=v-$v" >> "$GITHUB_OUTPUT"
-          echo "REGISTRE=ghcr.io/${GITHUB_REPOSITORY,,}/" >> "$GITHUB_ENV"
-          echo "TAG=v-$v" >> "$GITHUB_ENV"
-          echo "### Version v-$v (branche ${GITHUB_REF_NAME})" >> "$GITHUB_STEP_SUMMARY"
-      - uses: docker/login-action@v3
-        if: github.event_name != 'pull_request'
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Images déjà construites pour cette version ? (promotion sur accp et prod)
-        id: present
-        if: github.ref_name == 'accp' || github.ref_name == 'prod'
-        run: |
-          if sh infra/ci/images.sh present; then echo "ok=true" >> "$GITHUB_OUTPUT"
-            echo "Images v-${{ steps.version.outputs.version }} **promues sans reconstruction**." >> "$GITHUB_STEP_SUMMARY"
-          else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
-      - name: Build des 9 images
-        if: steps.present.outputs.ok != 'true'
-        run: docker compose build
-      - name: Scan des images (bloquant si vulnérabilité CRITIQUE corrigeable)
-        if: steps.present.outputs.ok != 'true'
-        run: sh infra/ci/scan-images.sh
-      - name: Test de bout en bout (boutique complète, parcours client)
-        if: steps.present.outputs.ok != 'true'
-        run: sh infra/ci/smoke-test.sh boutique-ci
-      - name: Publication des images v-<version>
-        if: steps.present.outputs.ok != 'true' && github.event_name == 'push'
-        run: docker compose push
+    with:
+      publier: ${{ github.event_name == 'push' }}
+      promotion: ${{ github.ref_name == 'accp' || github.ref_name == 'prod' }}
 
-  # ---------- 3. Déploiements ----------
-  # Sans secret KUBECONFIG, les environnements sont créés à la volée dans le runner (Docker Compose
-  # pour dev, cluster Kubernetes éphémère kind pour accp et prod). Avec le secret KUBECONFIG de
-  # l'environnement GitHub, le même job déploie sur le vrai cluster.
-  deployer-dev:
-    name: "Déploiement dev"
+  dev:
+    name: "Dev"
     needs: images
     if: github.event_name == 'push' && github.ref_name == 'dev'
-    runs-on: ubuntu-24.04
-    environment: dev
-    permissions: { contents: read, packages: write }
-    env:
-      TAG: ${{ needs.images.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
-      - run: echo "REGISTRE=ghcr.io/${GITHUB_REPOSITORY,,}/" >> "$GITHUB_ENV"
-      - name: Récupération des images de la version
-        run: docker compose --profile rabbit pull -q
-      - name: Déploiement et test de fumée
-        run: sh infra/ci/deployer.sh dev
-      - name: Étiquette « dev »
-        run: sh infra/ci/images.sh etiqueter dev
+    uses: ./.github/workflows/deploiement.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      environnement: dev
+      version: ${{ needs.images.outputs.version }}
+    secrets: inherit
 
-  deployer-accp:
-    name: "Recette (accp) : déploiement + validation"
+  recette:
+    name: "Recette"
     needs: images
     if: github.event_name == 'push' && github.ref_name == 'accp'
-    runs-on: ubuntu-24.04
-    environment: accp
-    permissions: { contents: read, packages: write }
-    env:
-      TAG: ${{ needs.images.outputs.tag }}
-      KUBECONFIG_CONTENU: ${{ secrets.KUBECONFIG }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
-      - run: echo "REGISTRE=ghcr.io/${GITHUB_REPOSITORY,,}/" >> "$GITHUB_ENV"
-      - name: Cible - cluster Kubernetes éphémère (aucun KUBECONFIG fourni)
-        if: env.KUBECONFIG_CONTENU == ''
-        uses: helm/kind-action@v1
-        with: { cluster_name: boutique }
-      - name: Cible - cluster réel de l'environnement
-        if: env.KUBECONFIG_CONTENU != ''
-        run: mkdir -p ~/.kube && printf '%s' "$KUBECONFIG_CONTENU" > ~/.kube/config
-      - name: Images pour le cluster éphémère
-        if: env.KUBECONFIG_CONTENU == ''
-        run: |
-          docker compose pull -q
-          echo "CHARGER_IMAGES=kind:boutique" >> "$GITHUB_ENV"
-      - name: Déploiement, attente du déploiement progressif et test de fumée
-        run: sh infra/ci/deployer.sh accp
-      - name: Recette validée → étiquettes « accp » et « accp-<version> »
-        run: |
-          sh infra/ci/images.sh etiqueter accp
-          sh infra/ci/images.sh etiqueter "accp-${{ needs.images.outputs.version }}"
-          echo "Version **${{ needs.images.outputs.version }}** recettée : prête pour la production." >> "$GITHUB_STEP_SUMMARY"
+    uses: ./.github/workflows/deploiement.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      environnement: accp
+      version: ${{ needs.images.outputs.version }}
+    secrets: inherit
 
   candidat-prod:
-    name: "Production : contrôle de la version candidate"
+    name: "Production"
     needs: images
-    if: github.ref_name == 'prod' && github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
-    permissions: { contents: read, packages: read }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
-      - name: Seule une version recettée peut aller en production
-        run: |
-          export REGISTRE="ghcr.io/${GITHUB_REPOSITORY,,}/"
-          sh infra/ci/images.sh present "accp-${{ needs.images.outputs.version }}"
-          echo "Version **${{ needs.images.outputs.version }}** recettée. Mise en production : *Run workflow* sur la branche prod, case cochée." >> "$GITHUB_STEP_SUMMARY"
-
-  deployer-prod:
-    name: "Production : approbation + déploiement"
-    needs: [images, candidat-prod]
-    if: github.event_name == 'workflow_dispatch' && inputs.mise_en_production && github.ref_name == 'prod'
-    runs-on: ubuntu-24.04
-    # L'environnement « production » accueille l'approbation native de GitHub (relecteurs obligatoires)
-    # dès que le dépôt est public ou en offre Pro/Team. En attendant, contrôle de l'approbateur ci-dessous.
-    environment: production
-    permissions: { contents: write, packages: write }
-    env:
-      TAG: ${{ needs.images.outputs.tag }}
-      KUBECONFIG_CONTENU: ${{ secrets.KUBECONFIG }}
-    steps:
-      - name: Contrôle de l'approbateur (liste APPROBATEURS_PROD)
-        run: |
-          approbateurs="${{ vars.APPROBATEURS_PROD || github.repository_owner }}"
-          case " $approbateurs " in
-            *" ${{ github.actor }} "*) echo "Mise en production approuvée par ${{ github.actor }}." >> "$GITHUB_STEP_SUMMARY" ;;
-            *) echo "::error::${{ github.actor }} ne fait pas partie des approbateurs de la production ($approbateurs)"; exit 1 ;;
-          esac
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
-      - run: echo "REGISTRE=ghcr.io/${GITHUB_REPOSITORY,,}/" >> "$GITHUB_ENV"
-      - name: Cible - cluster Kubernetes éphémère (aucun KUBECONFIG fourni)
-        if: env.KUBECONFIG_CONTENU == ''
-        uses: helm/kind-action@v1
-        with: { cluster_name: boutique }
-      - name: Cible - cluster réel de l'environnement
-        if: env.KUBECONFIG_CONTENU != ''
-        run: mkdir -p ~/.kube && printf '%s' "$KUBECONFIG_CONTENU" > ~/.kube/config
-      - name: Images pour le cluster éphémère
-        if: env.KUBECONFIG_CONTENU == ''
-        run: |
-          docker compose pull -q
-          echo "CHARGER_IMAGES=kind:boutique" >> "$GITHUB_ENV"
-      - name: Déploiement progressif, test de fumée, retour arrière automatique si échec
-        run: sh infra/ci/deployer.sh prod
-      - name: Étiquettes « prod » et « prod-<version> », tag Git de livraison
-        run: |
-          sh infra/ci/images.sh etiqueter prod
-          sh infra/ci/images.sh etiqueter "prod-${{ needs.images.outputs.version }}"
-          git tag "livraison-$(date -u +%Y%m%d-%H%M)-${{ needs.images.outputs.version }}"
-          git push origin --tags
+    if: github.event_name == 'push' && github.ref_name == 'prod'
+    uses: ./.github/workflows/recette-validee.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      version: ${{ needs.images.outputs.version }}

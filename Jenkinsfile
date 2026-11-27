@@ -1,5 +1,5 @@
 // Pipeline CI/CD de la boutique — Jenkins (job multi-branches)
-// Mêmes étapes, mêmes outils et mêmes scripts (infra/ci/*.sh) que .github/workflows/boutique.yml.
+// Mêmes étapes, mêmes outils et mêmes scripts (infra/ci/*.sh) que les workflows de .github/workflows/.
 // Monorepo turbo : toutes les commandes partent de la racine du dépôt (apps/, infra/, tools/).
 //
 // Branches et environnements :

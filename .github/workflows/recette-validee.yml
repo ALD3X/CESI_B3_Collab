@@ -1,0 +1,34 @@
+# Contrôle avant la production : seule une version recettée (images étiquetées accp-<version> sur GHCR)
+# peut être mise en production. Appelé par pipeline.yml (branche prod) et mise-en-production.yml.
+name: Recette validée
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version candidate (sans le préfixe v-)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  controle:
+    name: "Contrôle : version recettée"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Images accp-<version> présentes sur GHCR
+        run: |
+          export REGISTRE="ghcr.io/${GITHUB_REPOSITORY,,}/"
+          sh infra/ci/images.sh present "accp-${{ inputs.version }}"
+          echo "Version **${{ inputs.version }}** recettée. Mise en production : workflow *Mise en production* sur la branche prod." >> "$GITHUB_STEP_SUMMARY"
