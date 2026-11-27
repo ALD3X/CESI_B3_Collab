@@ -46,7 +46,7 @@ pipeline {
                     steps { sh 'gitleaks dir . --no-banner --redact' }
                 }
                 stage('Backend : tests + couverture') {
-                    agent { docker { image 'maven:3.9-eclipse-temurin-21'; args '-v boutique-m2:/root/.m2'; reuseNode true } }
+                    agent { docker { image 'maven:3.9-eclipse-temurin-25'; args '-v boutique-m2:/root/.m2'; reuseNode true } }
                     // Même commande que la tâche turbo « test » de apps/back (ici dans l'image Maven, sans Node)
                     steps { sh 'mvn -B -ntp -f apps/back/pom.xml verify' }
                     post {
@@ -54,7 +54,7 @@ pipeline {
                     }
                 }
                 stage('Front : tests + couverture') {
-                    agent { docker { image 'node:20-alpine'; reuseNode true } }
+                    agent { docker { image 'node:26-alpine'; reuseNode true } }
                     // Espaces de travail npm du monorepo, tâche turbo « test » du front
                     steps { sh 'npm ci && npx turbo run test --filter=@boutique/front' }
                 }

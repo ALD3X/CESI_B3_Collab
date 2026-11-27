@@ -1,5 +1,5 @@
 # Jenkins de démonstration, entièrement configuré par le code (JCasC + Job DSL).
-FROM jenkins/jenkins:lts-jdk21
+FROM jenkins/jenkins:lts-jdk25
 
 USER root
 # Client Docker + Docker Compose : les étapes du pipeline pilotent Docker via le socket de l'hôte.
