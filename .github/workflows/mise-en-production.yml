@@ -42,9 +42,17 @@ jobs:
         id: version
         run: echo "version=$(sh infra/ci/images.sh version)" >> "$GITHUB_OUTPUT"
 
+  origine:
+    name: "Origine"
+    needs: approbation
+    uses: ./.github/workflows/origine-pull-request.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
   recette:
     name: "Recette"
-    needs: approbation
+    needs: [approbation, origine]
     uses: ./.github/workflows/recette-validee.yml
     permissions:
       contents: read

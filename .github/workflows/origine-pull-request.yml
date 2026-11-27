@@ -1,0 +1,33 @@
+# Contrôle : accp et prod ne changent que par pull request fusionnée.
+# GitHub ne permet pas d'interdire un push sur un dépôt privé de l'offre gratuite (protection de branche et
+# rulesets réservés à l'offre Pro ou aux dépôts publics) : un push direct est donc détecté ici, et la chaîne
+# s'arrête avant toute publication ou tout déploiement.
+# Appelé par pipeline.yml (push sur accp ou prod) et mise-en-production.yml.
+name: Origine par pull request
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  origine:
+    name: "Contrôle : commit issu d'une pull request fusionnée"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Pull request fusionnée vers ${{ github.ref_name }} contenant ce commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCHE: ${{ github.ref_name }}
+        run: |
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            -q "[.[] | select(.merged_at != null and .base.ref == \"$BRANCHE\")][0].number // empty")
+          if [ -z "$pr" ]; then
+            echo "::error::Push direct sur $BRANCHE refusé : $BRANCHE ne change que par pull request fusionnée."
+            exit 1
+          fi
+          echo "Commit issu de la pull request **#$pr** fusionnée vers \`$BRANCHE\`." >> "$GITHUB_STEP_SUMMARY"

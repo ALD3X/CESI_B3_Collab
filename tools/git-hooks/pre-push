@@ -1,0 +1,14 @@
+#!/bin/sh
+# Refuse tout push direct vers les branches accp (recette) et prod (production) :
+# elles ne changent que par pull request fusionnée sur GitHub (dev → accp, accp → prod).
+# Installé automatiquement par « npm install » (git config core.hooksPath tools/git-hooks).
+while read -r _ref_locale _sha_local ref_distante _sha_distant; do
+  case "$ref_distante" in
+    refs/heads/accp|refs/heads/prod)
+      echo "Push direct vers ${ref_distante#refs/heads/} interdit : passer par une pull request" >&2
+      echo "  gh pr create --base ${ref_distante#refs/heads/} --head <branche source>" >&2
+      exit 1
+      ;;
+  esac
+done
+exit 0

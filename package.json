@@ -8,7 +8,8 @@
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
-    "dev": "turbo run dev --filter=@boutique/front"
+    "dev": "turbo run dev --filter=@boutique/front",
+    "prepare": "git config core.hooksPath tools/git-hooks || true"
   },
   "devDependencies": {
     "turbo": "2.11.13"
