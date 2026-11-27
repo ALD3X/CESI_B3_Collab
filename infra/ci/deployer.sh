@@ -6,6 +6,8 @@
 #
 # Variables : REGISTRE et TAG (images à déployer, ex. TAG=v-<version>)
 #             CHARGER_IMAGES = minikube:<profil> | kind:<cluster> | (vide : le cluster tire les images du registre)
+#             REGISTRE_UTILISATEUR et REGISTRE_MOT_DE_PASSE (registre privé, ex. GHCR) : le script crée dans
+#             chaque namespace un secret d'accès au registre, utilisé par le cluster pour tirer les images
 set -eu
 cd "$(dirname "$0")/../.."
 
@@ -31,7 +33,21 @@ case "$ENV" in
     ;;
 
   accp|prod)
-    # 1. Images disponibles pour le cluster
+    # 1. Images disponibles pour le cluster : soit il les tire lui-même du registre privé (GHCR),
+    #    soit elles sont chargées directement dans ses nœuds (registre local inaccessible au cluster)
+    if [ -n "${REGISTRE_MOT_DE_PASSE:-}" ]; then
+      echo "Le cluster tirera les images sur ${R%%/*} (secret d'accès « registre » dans chaque namespace)"
+      kubectl apply -f "infra/k8s/overlays/$ENV/namespaces.yaml"
+      for zone in publique applicative donnees; do
+        ns="$ENV-$zone"
+        kubectl -n "$ns" create secret docker-registry registre --docker-server="${R%%/*}" \
+          --docker-username="${REGISTRE_UTILISATEUR:?}" --docker-password="$REGISTRE_MOT_DE_PASSE" \
+          --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+        # Le compte de service par défaut (créé de façon asynchrone avec le namespace) utilise ce secret
+        until kubectl -n "$ns" get serviceaccount default >/dev/null 2>&1; do sleep 1; done
+        kubectl -n "$ns" patch serviceaccount default -p '{"imagePullSecrets":[{"name":"registre"}]}' >/dev/null
+      done
+    fi
     case "${CHARGER_IMAGES:-}" in
       minikube:*)
         for i in $IMAGES; do
