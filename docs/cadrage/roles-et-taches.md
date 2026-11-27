@@ -1,6 +1,6 @@
-# US-01.2 — Répartition des rôles et des tâches
+# Répartition des rôles et des tâches
 
-> **Jira :** [SCRUM-15](https://maalsi25.atlassian.net/browse/SCRUM-15) · **Epic :** EPIC 01, Cadrage et organisation du groupe
+> **Story :** US-01.2 · **Jira :** [SCRUM-15](https://maalsi25.atlassian.net/browse/SCRUM-15) · **Epic :** EPIC 01, Cadrage et organisation du groupe
 > **Objectif :** donner une responsabilité claire sur chaque chantier pour limiter les doublons et les oublis.
 > **Groupe :** 4 membres, désignés **Membre A, B, C et D**.
 
@@ -21,7 +21,7 @@ Ces rôles s'ajoutent au pilotage des epics. Ils ne le remplacent pas.
 
 ## 2. Pilote et binôme par epic
 
-**Règle :** le **pilote** est responsable de la livraison de l'epic. Le **binôme** relit et valide chaque livrable avant qu'il passe en « Terminé » (voir [US-01.3](US-01.3_suivi_commun.md)).
+**Règle :** le **pilote** est responsable de la livraison de l'epic. Le **binôme** relit et valide chaque livrable avant qu'il passe en « Terminé » (voir [US-01.3](suivi-du-projet.md)).
 
 | Epic | Intitulé | Jours | Pilote | Binôme / relecteur | Justification |
 |---|---|---|---|---|---|
@@ -41,7 +41,7 @@ Ces rôles s'ajoutent au pilotage des epics. Ils ne le remplacent pas.
 | A | 01, 03, 08 (transverses, plutôt légères) | — | US-05.3 (démo techno n°2) |
 | B | 02, 04 (enchaînement DevSecOps → CI/CD) | 01, 05, 06 | US-07.3 (supervision) |
 | C | 05, 07 (démo lourde, puis sécurité) | 03, 08 | — |
-| D | 06 | 02, 04, 07 | US-02.3 (métiers), US-04.3 (démo CI/CD n°2) |
+| D | 06 | 02, 04, 07 | US-02.3 (métiers), US-04.3 (démo CI/CD n°2), US-05.5 (passerelle d'API) |
 
 ---
 
@@ -93,6 +93,7 @@ Le responsable d'une story est par défaut le pilote de son epic, sauf mention *
 | US-04.2 / US-04.3 / US-05.2 / US-05.3 *(suite et fin)* | B / D / C / A | — |
 | [US-04.4](https://maalsi25.atlassian.net/browse/SCRUM-26) Conclusion comparative CI/CD | Membre B, avec D | US-04.2, US-04.3 |
 | [US-05.4](https://maalsi25.atlassian.net/browse/SCRUM-30) Argumenter le choix technique | Membre C, avec A | US-05.2, US-05.3 |
+| US-05.5 Comparer deux passerelles d'API (solution technique n°2) | **Membre D** | US-03.1, US-05.1 |
 
 ### J5 : finalisation → *livrables : démos finalisées, schémas finalisés, plan de sécurité*
 
@@ -106,7 +107,7 @@ Le responsable d'une story est par défaut le pilote de son epic, sauf mention *
 | [US-07.3](https://maalsi25.atlassian.net/browse/SCRUM-36) Supervision et réaction aux incidents | **Membre B** *(renfort)* | US-07.1 |
 | [US-07.4](https://maalsi25.atlassian.net/browse/SCRUM-37) Organiser l'amélioration continue | Membre C | US-07.2, US-07.3 |
 | [US-08.1](https://maalsi25.atlassian.net/browse/SCRUM-38) Consolider la recommandation globale | Membre A | Toutes les epics 02 à 07 |
-| [US-08.2](https://maalsi25.atlassian.net/browse/SCRUM-39) Scénariser les démonstrations | Membre A, avec les 4 démonstrateurs | US-04.4, US-05.4 |
+| [US-08.2](https://maalsi25.atlassian.net/browse/SCRUM-39) Scénariser les démonstrations | Membre A, avec les 4 orateurs | US-04.4, US-05.4 |
 | [US-08.3](https://maalsi25.atlassian.net/browse/SCRUM-40) Préparer l'organisation et le REX | Membre A | US-01.2, US-01.3 |
 
 ### J6 : soutenance (20 min + 15 min de Q/R)
@@ -158,3 +159,21 @@ Les démos (EPIC 04 et 05) sont le principal **risque de retard** : elles compte
 
 - **Absence courte (moins d'une demi-journée) :** le binôme reprend les stories en cours de l'absent.
 - **Absence longue :** le coordinateur réaffecte. Les démos restent prioritaires (`P0`). Si besoin, la démo CI/CD n°2 (D) ou la démo techno n°2 (A) est reprise par le pilote de l'epic correspondante.
+
+
+---
+
+## 7. Répartition de la parole en soutenance
+
+Chaque comparaison est présentée par la personne qui l'a menée, et une personne porte la vision d'ensemble du début à la fin. Le détail minuté est dans le [déroulé de la soutenance](../soutenance/deroule-de-la-soutenance.md).
+
+| Membre | Présente | Démos |
+|---|---|---|
+| **A** | Vision d'ensemble : besoin, qualité, architecture, DevSecOps, Kubernetes, tests, sécurité, recommandation et bilan | Kubernetes |
+| **B** | Comparaison CI/CD : GitHub Actions et Jenkins | GitHub Actions, Jenkins |
+| **C** | Solution technique n°1 : bus d'événements, RabbitMQ et Kafka | RabbitMQ, Kafka |
+| **D** | Solution technique n°2 : passerelle d'API, Spring Cloud Gateway et Kong | Spring Cloud Gateway et Kong |
+
+---
+
+[← Synthèse du besoin de l'entreprise](synthese-du-besoin.md) · [Sommaire](../README.md) · [Mise en place du suivi commun →](suivi-du-projet.md)

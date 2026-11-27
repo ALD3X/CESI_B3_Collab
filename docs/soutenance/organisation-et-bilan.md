@@ -1,8 +1,8 @@
-# US-08.3 — Organisation du groupe et retour d'expérience
+# Organisation du groupe et retour d'expérience
 
-> **Jira :** [SCRUM-40](https://maalsi25.atlassian.net/browse/SCRUM-40) · **Epic :** EPIC 08, Synthèse, soutenance et retour d'expérience
+> **Story :** US-08.3 · **Jira :** [SCRUM-40](https://maalsi25.atlassian.net/browse/SCRUM-40) · **Epic :** EPIC 08, Synthèse, soutenance et retour d'expérience
 > **Responsable :** Membre A · **Binôme :** Membre C
-> **Entrées :** [US-01.2, rôles](../cadrage/US-01.2_roles_et_taches.md) · [US-01.3, suivi commun](../cadrage/US-01.3_suivi_commun.md) · rétrospective de fin de J5
+> **Entrées :** [US-01.2, rôles](../cadrage/roles-et-taches.md) · [US-01.3, suivi commun](../cadrage/suivi-du-projet.md) · rétrospective de fin de J5
 
 **But :** présenter **comment le groupe a travaillé** en début de soutenance, puis un **bilan honnête** en conclusion.
 
@@ -17,11 +17,12 @@
 | **Méthode** | Scrum allégé : 1 sprint de 2 semaines (J1 à J6), 8 epics, 28 stories avec critères d'acceptation |
 | **Rôles transverses** | A coordinateur / Scrum Master · B responsable technique des démos · C support de soutenance · D qualité documentaire |
 | **Pilotage des epics** | Un **pilote** et un **binôme relecteur** par epic. **Chaque membre porte une démo** |
+| **Parole en soutenance** | A : vision d'ensemble · B : comparaison CI/CD · C : bus d'événements · D : passerelle d'API |
 | **Rituels** | Daily à 9h, point de mi-journée, revue de fin de journée, point de décision J3, rétrospective J5 |
 | **Outils** | Jira (board SCRUM), Git (une branche par story, PR relue par le binôme), Markdown (`docs/`), Mermaid / draw.io (schémas faits maison), Discord |
 | **Qualité de nos propres livrables** | *Definition of Done*, revue croisée systématique, démos rejouables et **auto-vérifiées** (le scénario de messagerie contrôle ses 7 résultats attendus) |
 
-**Schéma à présenter :** le chemin critique de [US-01.2](../cadrage/US-01.2_roles_et_taches.md) §4, simplifié.
+**Schéma à présenter :** le chemin critique de [US-01.2](../cadrage/roles-et-taches.md) §4, simplifié.
 
 ---
 
@@ -65,3 +66,7 @@
 ## 3. Phrase de conclusion proposée
 
 > *« Nous avons appliqué à notre projet ce que nous recommandons à la Petite Maison de l'Épouvante : des critères fixés avant de choisir, des contrôles automatiques, et une amélioration continue nourrie par ce que nous avons mesuré, y compris quand cela contredisait nos hypothèses. »*
+
+---
+
+[← Déroulé de la soutenance et scénarios des démos](deroule-de-la-soutenance.md) · [Sommaire](../README.md) · [Répétition de la soutenance et préparation des questions →](repetitions-et-questions.md)

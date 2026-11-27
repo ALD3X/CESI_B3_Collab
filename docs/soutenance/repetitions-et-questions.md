@@ -1,8 +1,8 @@
-# US-08.4 — Répétition de la soutenance et préparation des questions
+# Répétition de la soutenance et préparation des questions
 
-> **Jira :** [SCRUM-41](https://maalsi25.atlassian.net/browse/SCRUM-41) · **Epic :** EPIC 08, Synthèse, soutenance et retour d'expérience
+> **Story :** US-08.4 · **Jira :** [SCRUM-41](https://maalsi25.atlassian.net/browse/SCRUM-41) · **Epic :** EPIC 08, Synthèse, soutenance et retour d'expérience
 > **Responsable :** tout le groupe
-> **Entrées :** [US-08.1](US-08.1_recommandation_globale.md) · [US-08.2](US-08.2_scenarisation_demos.md) · [US-08.3](US-08.3_organisation_rex.md)
+> **Entrées :** [US-08.1](recommandation-globale.md) · [US-08.2](deroule-de-la-soutenance.md) · [US-08.3](organisation-et-bilan.md)
 
 **But :** tenir le format (**20 min + 15 min de questions**) et permettre à **chaque membre de défendre l'ensemble des choix**, pas seulement sa partie.
 
@@ -82,7 +82,7 @@
 
 | Question | Éléments de réponse |
 |---|---|
-| Qui a fait quoi ? | Tableau des pilotes et binômes (US-01.2). Chacun a porté une démo |
+| Qui a fait quoi ? | Tableau des pilotes et binômes (US-01.2). Chaque comparaison est présentée par la personne qui l'a menée : B la CI/CD, C le bus d'événements, D la passerelle. A porte la vision d'ensemble |
 | Qu'est-ce que vous referiez autrement ? | Mesurer plus tôt, sur une machine de référence commune ; exécuter la CI réelle plus tôt (US-08.3 §2.3) |
 
 ---
@@ -91,6 +91,10 @@
 
 - [ ] R1 à R4 réalisées, temps reportés au §1.
 - [ ] Chaque membre a répondu à au moins 3 questions hors de sa partie.
-- [ ] Préparation technique de [US-08.2](US-08.2_scenarisation_demos.md) §3 faite (J-1 et H-1).
+- [ ] Préparation technique de [US-08.2](deroule-de-la-soutenance.md) §3 faite (J-1 et H-1).
 - [ ] Vidéos de secours sur 2 ordinateurs et une clé USB.
 - [ ] Support PPT final relu (schémas faits maison, une idée par slide, police lisible).
+
+---
+
+[← Organisation du groupe et retour d'expérience](organisation-et-bilan.md) · [Sommaire](../README.md)

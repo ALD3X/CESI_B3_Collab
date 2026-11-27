@@ -1,8 +1,9 @@
-# US-05.5 — Comparaison complémentaire : passerelle d'API (Spring Cloud Gateway et Kong)
+# Comparaison complémentaire : passerelle d'API (Spring Cloud Gateway et Kong)
 
-> **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives (complément à US-05.1 à US-05.4)
+> **Story :** US-05.5 · **Epic :** EPIC 05, Comparaison et démonstration de deux technologies applicatives (complément à US-05.1 à US-05.4)
+> **Responsable :** Membre D · **Binôme :** Membre C
 > **Application :** [boutique de démonstration](../../README.md) · **Scénario :** [`tools/scenarios/passerelle.py`](../../tools/scenarios/passerelle.py) · **Mesures :** [`tools/scenarios/mesures.py`](../../tools/scenarios/mesures.py)
-> **Entrées :** [US-03.1, composant EN-2](../architecture/US-03.1_composants_fonctionnels.md) · [US-03.2, architecture](../architecture/US-03.2_architecture_macroscopique.md) · [US-02.1, attributs de qualité](../qualite_devsecops/US-02.1_attributs_qualite.md) · [US-01.1, besoin](../cadrage/US-01.1_synthese_besoin.md)
+> **Entrées :** [US-03.1, composant EN-2](../architecture/composants-fonctionnels.md) · [US-03.2, architecture](../architecture/architecture-macroscopique.md) · [US-02.1, attributs de qualité](../qualite-devsecops/attributs-de-qualite.md) · [US-01.1, besoin](../cadrage/synthese-du-besoin.md)
 
 **But :** choisir la technologie du composant **EN-2 « Passerelle d'entrée »**, le point d'accès unique de la plateforme. Son rôle est défini dans US-03.1 : *router les requêtes, vérifier le jeton d'identité, limiter le débit par client, journaliser les accès*. Les services métier étant écrits en **Spring Boot**, la question posée est :
 
@@ -156,7 +157,7 @@ Notes de 1 (faible) à 5 (excellent). Les poids sont fixés au §2, avant les d�
 1. **Redis managé hébergé dans l'UE**, en haute disponibilité.
 2. **Délais, coupe-circuit et nouvelles tentatives réglés route par route** (valeurs de la boutique comme point de départ), et **test de panne automatisé** dans le pipeline.
 3. **Jetons signés en RS256** par le composant d'identité (EN-3), vérifiés grâce à ses clés publiques (JWKS). Le secret partagé HS256 ne sert qu'à la démo.
-4. **Au moins 2 instances** de la passerelle derrière l'Ingress controller de l'orchestrateur ([US-06.1](../environnement_tests/US-06.1_architecture_orchestrateur.md)), qui garde la terminaison TLS. C'est déjà le cas dans la démo Kubernetes de la boutique.
+4. **Au moins 2 instances** de la passerelle derrière l'Ingress controller de l'orchestrateur ([US-06.1](../kubernetes-et-tests/architecture-kubernetes.md)), qui garde la terminaison TLS. C'est déjà le cas dans la démo Kubernetes de la boutique.
 5. **Règle d'architecture :** aucune logique métier dans la passerelle, vérifiée en revue de code.
 
 ### Quand Kong deviendrait le bon choix
@@ -178,3 +179,7 @@ Cette recommandation **n'est pas universelle**. Kong deviendrait préférable si
 | Architecture physique, composants et interactions (3 pts) | Concrétise le composant EN-2 de US-03.2 et ses responsabilités |
 | Politique de sécurité (2 pts) | Contrôle des jetons, limitation du débit, pièges des réglages par défaut (mauvais routage), risque de licence sur les correctifs |
 | Attributs qualité (1 pt) | Critères G1 à G7 reliés à la sécurité, la fiabilité et la maintenabilité (US-02.1) |
+
+---
+
+[← Argumentation du choix technique : bus d'événements](../bus-evenements/comparaison-et-choix.md) · [Sommaire](../README.md) · [Architecture de l'orchestrateur (Kubernetes) →](../kubernetes-et-tests/architecture-kubernetes.md)
