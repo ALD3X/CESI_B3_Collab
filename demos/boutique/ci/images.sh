@@ -1,7 +1,7 @@
 #!/bin/sh
 # Gestion des images entre environnements, commune aux deux pipelines.
 # Principe « construire une fois, déployer partout » : les images sont construites UNE fois (branche dev),
-# identifiées par la VERSION du code (empreinte Git du dossier de la boutique), puis promues par étiquettes.
+# identifiées par la VERSION de leurs sources (empreinte Git de backend, front, kong, postgres), puis promues.
 #
 #   sh ci/images.sh version              → affiche la version (identique sur dev, accp et prod pour un même code)
 #   sh ci/images.sh present [ETIQUETTE]  → code 0 si les 9 images portent cette étiquette dans le registre
@@ -11,7 +11,8 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-VERSION=$(git rev-parse --short=12 HEAD:./)
+# Empreinte des seules sources des images : modifier la doc, les scripts ou les manifestes ne change pas la version
+VERSION=$(git rev-parse HEAD:./backend HEAD:./front HEAD:./kong HEAD:./postgres | sha1sum | cut -c1-12)
 R="${REGISTRE:-}"
 IMAGES="front passerelle identite catalogue commandes notifications expedition kong postgres"
 

@@ -95,55 +95,65 @@ python scenarios/passerelle.py kong --pause
 python scenarios/mesures.py # latence ajoutée, mémoire, démarrage, délai commande → notification
 ```
 
-## 4. CI/CD : GitHub Actions et Jenkins
+## 4. CI/CD : GitHub Actions et Jenkins, de dev à la production
 
-Les deux pipelines enchaînent **les mêmes étapes avec les mêmes outils**. Les étapes lourdes sont des scripts communs (`ci/`) :
+Les deux pipelines enchaînent **les mêmes étapes avec les mêmes outils et les mêmes scripts** (`ci/`). Ils tournent directement sur le dépôt du projet : workflow [`.github/workflows/boutique.yml`](../../.github/workflows/boutique.yml) et [`Jenkinsfile`](Jenkinsfile). La stratégie complète est décrite dans [US-04.5](../../docs/cicd/US-04.5_branches_environnements.md).
 
 ```
-secrets (gitleaks) ‖ backend : tests + couverture ≥ 70 % ‖ front : tests + couverture ≥ 70 % ‖ SAST (Semgrep) + SCA (Trivy)
-   → build des 9 images → scan des images (Trivy) → test de bout en bout (boutique complète) → publication (main)
+toutes les branches : secrets ‖ backend (≥ 70 %) ‖ front (≥ 70 %) ‖ SAST + SCA
+feature/*  → build des 9 images → scan → test de bout en bout
+dev        → idem + publication v-<version> → déploiement dev (Docker Compose, :3100)
+accp       → promotion des MÊMES images → déploiement recette (Kubernetes accp-*) → recette validée
+prod       → version recettée ? → APPROBATION → déploiement progressif (prod-*) → test de fumée → retour arrière si échec
 ```
 
-**Préparer le dépôt de démonstration** : la boutique est poussée dans **son propre dépôt Git**, distinct du dépôt de documentation.
+| Branche | Environnement | Accès |
+|---|---|---|
+| `dev` (par défaut) | Docker Compose, projet `boutique-dev` | http://localhost:3100 |
+| `accp` | Kubernetes, namespaces `accp-*` | `kubectl -n accp-publique port-forward svc/front 3002:80` |
+| `prod` | Kubernetes, namespaces `prod-*` | `kubectl -n prod-publique port-forward svc/front 3001:80` |
 
-```bash
-cp -r demos/boutique ../petite-maison-boutique && cd ../petite-maison-boutique
-rm -rf front/node_modules backend/*/target .etat.json
-git init -b main && git add -A && git commit -m "Boutique de démonstration"
-```
-
-**GitHub Actions** : créer un dépôt vide sur GitHub, puis `git remote add origin … && git push -u origin main`. Onglet **Actions** : 4 jobs parallèles, puis le job images (build, scan, test de bout en bout, publication dans **Packages** / GHCR).
+**GitHub Actions** : chaque push sur `dev`, `accp` ou `prod` lance la chaîne de la branche (onglet **Actions**, puis **Environments**). La mise en production se déclenche par **Run workflow** sur la branche `prod`, case « Mettre en production » cochée, par un utilisateur de la variable `APPROBATEURS_PROD`. Sans secret `KUBECONFIG`, les environnements Kubernetes sont créés à la volée dans le runner (cluster kind).
 
 **Jenkins** (100 % local, configuré par le code) :
 
 ```bash
+sh k8s/demo.sh preparer                       # cluster minikube (une fois)
 cd jenkins
-SOURCE_DIR=.. docker compose up -d --build # http://localhost:8090 (admin / admin), job déjà créé
+docker compose up -d --build                  # http://localhost:8090 (admin / admin), job multi-branches déjà créé
+sh connecter-minikube.sh                      # accès de Jenkins au cluster (environnements accp et prod)
 ```
 
-Le job `petite-maison-boutique` interroge le dépôt toutes les minutes. Les images sont publiées dans le registre local : `curl http://localhost:5000/v2/_catalog`.
+Le job `petite-maison-boutique` découvre les branches `dev`, `accp`, `prod` et `feature/*` du dépôt toutes les minutes. En production, le build s'arrête sur l'étape **Approbation** : bouton « Mettre en production » (utilisateur `admin`). Images publiées : `curl http://localhost:5000/v2/_catalog`.
 
-**Scénarios « pipeline rouge »** :
+**Faire avancer une version :**
 
 ```bash
-sh demo/scenario.sh regression # TVA passée à 21 % : les tests du catalogue échouent
-sh demo/scenario.sh secret # clé d'API de paiement commitée : gitleaks bloque
-git commit -am "scénario de démo" && git push # Jenkins détecte le commit seul
+git switch accp && git merge --ff-only dev && git push      # dev → recette
+git switch prod && git merge --ff-only accp && git push     # recette → production (puis approbation)
+```
+
+**Scénarios « pipeline rouge »** (sur une branche `feature/…` ou sur `dev`) :
+
+```bash
+sh demo/scenario.sh regression     # TVA passée à 21 % : les tests du catalogue échouent
+sh demo/scenario.sh secret         # clé d'API de paiement commitée : gitleaks bloque
+git commit -am "scénario de démo" && git push
 sh demo/scenario.sh reset && git commit -am "retour au vert" && git push
 ```
 
 > Sur GitHub, la *push protection* peut refuser le secret avant même le pipeline : une couche de défense supplémentaire, à montrer comme telle.
 
-## 5. Kubernetes : la boutique dans 3 zones
+## 5. Kubernetes : la boutique dans 3 zones, en recette et en production
 
 ```bash
-sh k8s/demo.sh preparer # la veille : cluster minikube à 2 nœuds + chargement des images
-sh k8s/demo.sh composants # control plane, etcd, scheduler, kubelet, kube-proxy visibles
-sh k8s/demo.sh deployer # zone-publique (front), zone-applicative (passerelle + 5 services), zone-donnees
-sh k8s/demo.sh ouvrir # boutique servie par Kubernetes : http://localhost:3001
-sh k8s/demo.sh auto-reparation # une instance du catalogue supprimée est recréée
-sh k8s/demo.sh mise-a-jour # 4 instances puis redémarrage progressif sans coupure
-sh k8s/demo.sh cloisonnement # contourner la passerelle ou atteindre la base depuis la zone publique : bloqué
+sh k8s/demo.sh preparer            # la veille : cluster minikube à 2 nœuds + chargement des images
+sh k8s/demo.sh composants          # control plane, etcd, scheduler, kubelet, kube-proxy visibles
+sh k8s/demo.sh deployer            # production : prod-publique, prod-applicative, prod-donnees (ENV=accp pour la recette)
+sh k8s/demo.sh ouvrir              # boutique servie par Kubernetes : http://localhost:3001
+sh k8s/demo.sh auto-reparation     # une instance du catalogue supprimée est recréée
+sh k8s/demo.sh mise-a-jour         # 4 instances puis redémarrage progressif sans coupure
+sh k8s/demo.sh cloisonnement       # contourner la passerelle, atteindre la base, ou passer de la recette à la production : bloqué
 sh k8s/demo.sh nettoyer
 ```
 

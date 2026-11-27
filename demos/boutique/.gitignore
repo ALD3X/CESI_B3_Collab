@@ -6,3 +6,4 @@ front/dist/
 front/coverage/
 __pycache__/
 k8s-preparer.log
+.kubeconfig-jenkins

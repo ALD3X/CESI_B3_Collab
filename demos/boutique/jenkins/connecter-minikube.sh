@@ -4,6 +4,7 @@
 #   1. Jenkins rejoint le réseau Docker du cluster ;
 #   2. un fichier kubeconfig pointant vers l'adresse interne du cluster lui est copié.
 set -eu
+export MSYS_NO_PATHCONV=1   # Git Bash sous Windows : ne pas réécrire les chemins Linux des conteneurs
 PROFIL="${1:-boutique}"
 CONTENEUR="boutique-jenkins-jenkins-1"
 cd "$(dirname "$0")"
@@ -11,9 +12,9 @@ cd "$(dirname "$0")"
 docker network connect "$PROFIL" "$CONTENEUR" 2>/dev/null || echo "Jenkins est déjà sur le réseau $PROFIL."
 IP=$(minikube -p "$PROFIL" ip)
 kubectl config view --raw --minify --flatten --context "$PROFIL" \
-  | sed -E "s#server: https://[^ ]+#server: https://$IP:8443#" > /tmp/kubeconfig-jenkins
+  | sed -E "s#server: https://[^ ]+#server: https://$IP:8443#" > .kubeconfig-jenkins
 docker exec "$CONTENEUR" mkdir -p /var/jenkins_home/.kube
-docker cp /tmp/kubeconfig-jenkins "$CONTENEUR:/var/jenkins_home/.kube/config"
-rm -f /tmp/kubeconfig-jenkins
+docker cp .kubeconfig-jenkins "$CONTENEUR:/var/jenkins_home/.kube/config"
+rm -f .kubeconfig-jenkins
 docker exec "$CONTENEUR" kubectl --kubeconfig /var/jenkins_home/.kube/config get nodes
 echo "Jenkins peut déployer sur le cluster « $PROFIL »."
