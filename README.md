@@ -1,26 +1,6 @@
 # La Petite Maison de l'Épouvante — monorepo
 
-Projet collaboratif CESI : documentation du projet et **boutique de démonstration**, une application **front + microservices** qui sert de support **unique** à toutes les démonstrations de la soutenance : les deux solutions CI/CD, les deux comparaisons techniques (bus d'événements, passerelle d'API) et l'orchestrateur Kubernetes. Elle reprend les composants de l'architecture [US-03.2](docs/architecture/US-03.2_architecture_macroscopique.md).
-
-```
-                         Navigateur ── http://localhost:3000
-                              │
-                    ┌─────────┴─────────┐
-                    │ front (React) │ NGINX non-root, notifications en direct (SSE)
-                    └─────────┬─────────┘
-             ┌────────────────┴────────────────┐
-   EN-2 Spring Cloud Gateway :8080 Kong 3.9 :8000 ← comparaison n°2 (US-05.5)
-   (JWT, limitation par membre, (JWT, limitation par
-    coupe-circuit, Redis) application, délais)
-             └────────────────┬────────────────┘
-   ┌──────────┬───────────────┼───────────────┬──────────────┐
- identité catalogue commandes notifications expédition (Spring Boot 4, Java 21)
- EN-3 JWT SV-1 (PG) SV-2 (PG) SP-3 (SSE) SV-5
-                              │ publie « commande payée » ▲ ▲
-                              ▼ │ │
-                  TR-1 Bus d'événements : RabbitMQ | Kafka ← comparaison n°1 (US-05.1 à 05.4)
-                              (même code : Spring Cloud Stream, broker choisi au démarrage)
-```
+Projet collaboratif CESI : documentation du projet et **boutique de démonstration**, une application **front + microservices** qui sert de support **unique** à toutes les démonstrations de la soutenance : les deux solutions CI/CD, les deux comparaisons techniques (bus d'événements, passerelle d'API) et l'orchestrateur Kubernetes.
 
 ## Organisation du dépôt (monorepo turbo)
 
@@ -28,7 +8,7 @@ Projet collaboratif CESI : documentation du projet et **boutique de démonstrati
 .
 ├── apps/
 │   ├── front/          React 18 + Vite, tests Vitest, image NGINX non-root          (@boutique/front)
-│   └── back/           Spring Boot 4 / Java 21, Maven multi-modules + Maven Wrapper (@boutique/back)
+│   └── back/           Spring Boot 4 / Java 25, Maven multi-modules + Maven Wrapper (@boutique/back)
 ├── infra/
 │   ├── compose/        compose.yaml (boutique complète), dev.yml (environnement dev), ci.yml (tests CI)
 │   ├── ci/             scripts communs aux deux pipelines : images, scan, test de bout en bout, déploiement
@@ -36,7 +16,7 @@ Projet collaboratif CESI : documentation du projet et **boutique de démonstrati
 │   ├── jenkins/        Jenkins configuré par le code (JCasC, job multi-branches) + registre local
 │   └── kong/, postgres/  images Kong (configuration déclarative) et PostgreSQL (une base par service)
 ├── tools/              boutique.py (lancement, bascule bus/passerelle), scenarios/, resultats/, demo/
-├── docs/               cadrage, architecture, CI/CD, technologies, sécurité, soutenance
+├── docs/               documentation du projet : sommaire dans docs/README.md
 ├── .github/workflows/boutique.yml   Jenkinsfile   turbo.json   package.json
 └── .trivyignore.yaml   .gitleaks.toml
 ```
@@ -47,7 +27,7 @@ Projet collaboratif CESI : documentation du projet et **boutique de démonstrati
 | `apps/back` | Maven multi-modules : `contrats` (événements versionnés), `identite`, `catalogue`, `commandes`, `notifications`, `expedition`, `passerelle` |
 | `infra/` | Tout ce qui construit, teste et déploie : Docker Compose, scripts CI, Kubernetes, Jenkins, images Kong et PostgreSQL |
 | `tools/` | Lancement local, bascule du bus et de la passerelle, scénarios automatisés des comparaisons, scénarios « pipeline rouge » |
-| `docs/` | Livrables du projet, reliés aux consignes et à la grille ([docs/consigne_projet](docs/consigne_projet/)) |
+| `docs/` | Livrables du projet, rangés dans l'ordre de lecture : [sommaire](docs/README.md), sujet et grille dans [docs/sujet](docs/sujet/) |
 | `.github/workflows/boutique.yml`, `Jenkinsfile` | Les deux pipelines CI/CD |
 | `.trivyignore.yaml` | Registre des vulnérabilités acceptées (justifiées et datées) |
 
@@ -68,7 +48,7 @@ Le backend passe par le **Maven Wrapper** (`apps/back/mvnw`) : aucun Maven à in
 ## Prérequis
 
 - Docker Desktop démarré (8 Go de mémoire conseillés)
-- Node.js 20 ou plus récent (turbo, front)
+- Node.js 26 LTS (turbo, front) et JDK 25 LTS (backend ; Maven est téléchargé par le Maven Wrapper)
 - Python 3.11 ou plus récent (bibliothèque standard uniquement)
 - Pour Kubernetes : `minikube` et `kubectl`
 
@@ -129,7 +109,7 @@ python tools/scenarios/mesures.py # latence ajoutée, mémoire, démarrage, dél
 
 ## 4. CI/CD : GitHub Actions et Jenkins, de dev à la production
 
-Les deux pipelines enchaînent **les mêmes étapes avec les mêmes outils et les mêmes scripts** (`infra/ci/`). Ils tournent directement sur le dépôt du projet : workflow [`.github/workflows/boutique.yml`](.github/workflows/boutique.yml) et [`Jenkinsfile`](Jenkinsfile). La stratégie complète est décrite dans [US-04.5](docs/cicd/US-04.5_branches_environnements.md).
+Les deux pipelines enchaînent **les mêmes étapes avec les mêmes outils et les mêmes scripts** (`infra/ci/`). Ils tournent directement sur le dépôt du projet : workflow [`.github/workflows/boutique.yml`](.github/workflows/boutique.yml) et [`Jenkinsfile`](Jenkinsfile). La stratégie complète est décrite dans [US-04.5](docs/cicd/branches-et-environnements.md).
 
 ```
 toutes les branches : secrets ‖ backend (≥ 70 %) ‖ front (≥ 70 %) ‖ SAST + SCA
@@ -188,23 +168,3 @@ sh infra/k8s/demo.sh mise-a-jour         # 4 instances puis redémarrage progres
 sh infra/k8s/demo.sh cloisonnement       # contourner la passerelle, atteindre la base, ou passer de la recette à la production : bloqué
 sh infra/k8s/demo.sh nettoyer
 ```
-
-## 6. Plan de secours
-
-| Aléa | Solution |
-|---|---|
-| Pas d'Internet | Tout est local sauf GitHub Actions : montrer la **vidéo** d'un run GitHub, et Jenkins en direct (images téléchargées la veille) |
-| Machine lente | Lancer `python tools/boutique.py demarrer` avant la soutenance. Kubernetes : seulement `composants` et `auto-reparation` |
-| Une démo plante | Vidéo de secours de cette démo, sans chercher à corriger en direct (15 s maximum) |
-| Port déjà utilisé | `python tools/boutique.py arreter` puis relancer. Jenkins utilise le port 8090, Kubernetes le port 3001 |
-
-## Constats faits en construisant la boutique
-
-Ils nourrissent les comparaisons et la politique de sécurité :
-
-- **Coupe-circuit trop court** (1 s par défaut) : la passerelle Spring a renvoyé 503 alors que la commande était enregistrée (premier envoi vers Kafka plus lent). Risque de double commande. Délai porté à 5 s.
-- **Coupe-circuit trop long à se refermer** (60 s par défaut) : réglé à 10 s.
-- **Cache DNS des passerelles** : après la recréation des conteneurs, **Kong a envoyé `/api/commandes` vers un autre service** pendant 56 s (ancienne IP réattribuée), et Spring a renvoyé des 500. Corrigé des deux côtés par un cache DNS court. Sur Kubernetes, l'IP stable des Services évite ce problème.
-- **Vulnérabilités** : Spring Boot 3.4 portait des failles critiques corrigées seulement dans Spring Framework 7. Le scan des images a bloqué le pipeline et imposé la migration vers **Spring Boot 4.0**. Une faille non exploitable de l'image PostgreSQL est acceptée, avec justification et date d'expiration (`.trivyignore.yaml`).
-- **Chaîne dev → accp → prod** : la publication GHCR a d'abord été refusée (images à nommer sous le dépôt), la création de la branche `accp` ne lançait aucun pipeline (filtre `paths` : une promotion ne modifie aucun fichier), et l'offre GitHub gratuite n'autorise ni protection de branche ni approbation de la production sur un dépôt privé. Détails dans [US-04.5](docs/cicd/US-04.5_branches_environnements.md).
-- **Passage en monorepo turbo** : le front est construit depuis la racine du dépôt (un seul `package-lock.json` pour les espaces de travail npm), avec un fichier `Dockerfile.dockerignore` qui limite le contexte envoyé à Docker. La version des images couvre désormais `apps/`, `infra/kong`, `infra/postgres` et les manifestes npm.
