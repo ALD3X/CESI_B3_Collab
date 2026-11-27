@@ -17,7 +17,8 @@ Projet collaboratif CESI : documentation du projet et **boutique de démonstrati
 │   └── kong/, postgres/  images Kong (configuration déclarative) et PostgreSQL (une base par service)
 ├── tools/              boutique.py (lancement, bascule bus/passerelle), scenarios/, resultats/, demo/
 ├── docs/               documentation du projet : sommaire dans docs/README.md
-├── .github/workflows/boutique.yml   Jenkinsfile   turbo.json   package.json
+├── .github/workflows/   pipeline GitHub Actions (orchestrateur pipeline.yml + workflows réutilisables)
+├── Jenkinsfile   turbo.json   package.json
 └── .trivyignore.yaml   .gitleaks.toml
 ```
 
@@ -28,7 +29,7 @@ Projet collaboratif CESI : documentation du projet et **boutique de démonstrati
 | `infra/` | Tout ce qui construit, teste et déploie : Docker Compose, scripts CI, Kubernetes, Jenkins, images Kong et PostgreSQL |
 | `tools/` | Lancement local, bascule du bus et de la passerelle, scénarios automatisés des comparaisons, scénarios « pipeline rouge » |
 | `docs/` | Livrables du projet, rangés dans l'ordre de lecture : [sommaire](docs/README.md), sujet et grille dans [docs/sujet](docs/sujet/) |
-| `.github/workflows/boutique.yml`, `Jenkinsfile` | Les deux pipelines CI/CD |
+| `.github/workflows/`, `Jenkinsfile` | Les deux pipelines CI/CD |
 | `.trivyignore.yaml` | Registre des vulnérabilités acceptées (justifiées et datées) |
 
 ### Tâches turbo
@@ -109,7 +110,7 @@ python tools/scenarios/mesures.py # latence ajoutée, mémoire, démarrage, dél
 
 ## 4. CI/CD : GitHub Actions et Jenkins, de dev à la production
 
-Les deux pipelines enchaînent **les mêmes étapes avec les mêmes outils et les mêmes scripts** (`infra/ci/`). Ils tournent directement sur le dépôt du projet : workflow [`.github/workflows/boutique.yml`](.github/workflows/boutique.yml) et [`Jenkinsfile`](Jenkinsfile). La stratégie complète est décrite dans [US-04.5](docs/cicd/branches-et-environnements.md).
+Les deux pipelines enchaînent **les mêmes étapes avec les mêmes outils et les mêmes scripts** (`infra/ci/`). Ils tournent directement sur le dépôt du projet : workflow [`.github/workflows/`](.github/workflows/) (orchestrateur [`pipeline.yml`](.github/workflows/pipeline.yml)) et [`Jenkinsfile`](Jenkinsfile). La stratégie complète est décrite dans [US-04.5](docs/cicd/branches-et-environnements.md).
 
 ```
 toutes les branches : secrets ‖ backend (≥ 70 %) ‖ front (≥ 70 %) ‖ SAST + SCA
@@ -125,7 +126,7 @@ prod       → version recettée ? → APPROBATION → déploiement progressif (
 | `accp` | Kubernetes, namespaces `accp-*` | `kubectl -n accp-publique port-forward svc/front 3002:80` |
 | `prod` | Kubernetes, namespaces `prod-*` | `kubectl -n prod-publique port-forward svc/front 3001:80` |
 
-**GitHub Actions** : chaque push sur `dev`, `accp` ou `prod` lance la chaîne de la branche (onglet **Actions**, puis **Environments**). La mise en production se déclenche par **Run workflow** sur la branche `prod`, case « Mettre en production » cochée, par un utilisateur de la variable `APPROBATEURS_PROD`. Sans secret `KUBECONFIG`, les environnements Kubernetes sont créés à la volée dans le runner (cluster kind).
+**GitHub Actions** : chaque push sur `dev`, `accp` ou `prod` lance la chaîne de la branche (onglet **Actions**, puis **Environments**). Les images sont publiées sur GHCR, puis **le cluster de recette ou de production les tire lui-même** (secret d'accès au registre créé à chaque déploiement). La mise en production se déclenche par le workflow **Mise en production** sur la branche `prod` (`gh workflow run mise-en-production.yml --ref prod`), réservé aux utilisateurs de la variable `APPROBATEURS_PROD`. Sans secret `KUBECONFIG`, le cluster est créé à la volée dans le runner (kind).
 
 **Jenkins** (100 % local, configuré par le code) :
 

@@ -2,7 +2,7 @@
 
 > **Story :** US-04.2 · **Jira :** [SCRUM-24](https://maalsi25.atlassian.net/browse/SCRUM-24) · **Epic :** EPIC 04, Comparaison et démonstration de deux solutions CI/CD
 > **Responsable :** Membre B · **Binôme :** Membre D
-> **Scénario de référence :** [US-04.1](candidats-et-criteres.md) · **Application :** [boutique de démonstration](../../README.md) · **Pipeline :** [`.github/workflows/boutique.yml`](../../.github/workflows/boutique.yml)
+> **Scénario de référence :** [US-04.1](candidats-et-criteres.md) · **Application :** [boutique de démonstration](../../README.md) · **Pipeline :** [`.github/workflows/`](../../.github/workflows/) (orchestrateur : [`pipeline.yml`](../../.github/workflows/pipeline.yml))
 
 ---
 
@@ -23,42 +23,54 @@ La boutique est poussée dans **son propre dépôt GitHub** (README, section 4).
 
 ## 2. Structure du pipeline
 
+Le pipeline est découpé en **workflows réutilisables** (`workflow_call`) : chaque fichier a une seule responsabilité, et les étapes de déploiement sont écrites une seule fois pour les trois environnements.
+
+| Fichier | Rôle | Appelé par |
+|---|---|---|
+| [`pipeline.yml`](../../.github/workflows/pipeline.yml) | **Orchestrateur** : déclencheurs (`push` sur `dev`, `accp`, `prod`, `pull_request`) et enchaînement des étapes selon la branche | GitHub (push, PR) |
+| [`controles.yml`](../../.github/workflows/controles.yml) | **1. Qualité et sécurité du code** : secrets, backend, front, SAST + SCA, en parallèle | `pipeline.yml` |
+| [`images.yml`](../../.github/workflows/images.yml) | **2. Images** : build unique, scan, test de bout en bout, publication sur **GHCR** ; promotion sans reconstruction sur `accp` et `prod` | `pipeline.yml` |
+| [`deploiement.yml`](../../.github/workflows/deploiement.yml) | **3. Déploiement** d'un environnement (`dev`, `accp` ou `prod`) à partir des images de GHCR, test de fumée, étiquettes | `pipeline.yml`, `mise-en-production.yml` |
+| [`recette-validee.yml`](../../.github/workflows/recette-validee.yml) | Contrôle : seule une version recettée (`accp-<version>`) peut aller en production | `pipeline.yml`, `mise-en-production.yml` |
+| [`mise-en-production.yml`](../../.github/workflows/mise-en-production.yml) | **Mise en production** déclenchée à la main par un approbateur, puis tag Git de livraison | Un approbateur (`workflow_dispatch`) |
+
 ```mermaid
 flowchart LR
-    E(["push main / PR / manuel"]) --> S & B & F & A
-    S["Job secrets<br/>gitleaks"]
-    B["Job backend<br/>Maven : 23 tests<br/>couverture ≥ 70 %<br/> rapports"]
-    F["Job front<br/>Vitest : 10 tests<br/>couverture ≥ 70 %"]
-    A["Job sast-sca<br/>Semgrep · Trivy fs"]
-    S & B & F & A --> I["Job images<br/>build 9 images → scan Trivy<br/>→ test de bout en bout<br/>→ push GHCR (main)"]
+    P(["push / PR"]) --> C
+    subgraph C["controles.yml"]
+      S["secrets"] ~~~ B["backend"] ~~~ F["front"] ~~~ A["sast-sca"]
+    end
+    C --> I["images.yml<br/>build → scan → test de bout en bout<br/>→ publication GHCR"]
+    I -- "dev" --> D["deploiement.yml<br/>dev"]
+    I -- "accp" --> R["deploiement.yml<br/>recette"]
+    I -- "prod" --> V["recette-validee.yml"]
+    M(["approbateur"]) --> MP["mise-en-production.yml"] --> V2["recette-validee.yml"] --> DP["deploiement.yml<br/>prod"]
 ```
+
+**Des images publiées sur GHCR au cluster :** le job images publie `ghcr.io/<compte>/<dépôt>/boutique-*:v-<version>`. Pour la recette et la production, `deploiement.yml` ne transfère aucune image : il crée dans chaque namespace un **secret d'accès au registre** (`imagePullSecret`), et **le cluster tire lui-même les images sur GHCR** au moment de démarrer les pods. Sans secret `KUBECONFIG`, la cible est un cluster éphémère (kind) créé dans le runner, qui se comporte comme un vrai cluster ; avec le secret `KUBECONFIG` de l'environnement, c'est le vrai cluster, et un jeton de lecture durable (`GHCR_LECTURE`) remplace le jeton du workflow, qui expire à la fin du job.
 
 | Concept GitHub Actions | Utilisation dans la démo |
 |---|---|
-| **Workflow** (`on:`) | Déclenché par `push` sur `main`, `pull_request` et `workflow_dispatch` (bouton manuel) |
-| **Jobs** | 5 jobs. Les 4 premiers tournent **en parallèle** sur des runners distincts |
-| **`needs:`** | Les images ne sont construites que si les 4 jobs de qualité sont verts : c'est la **quality gate** |
-| **Actions du marketplace** | `actions/checkout`, `actions/setup-java` et `actions/setup-node` (avec **cache Maven et npm**), `actions/upload-artifact`, `docker/login-action` |
-| **`permissions:`** | Lecture seule par défaut. `packages: write` est accordé **uniquement** au job de publication (moindre privilège) |
-| **`secrets.GITHUB_TOKEN`** | Jeton éphémère généré par GitHub pour publier sur GHCR. **Aucun secret à créer** |
-| **`$GITHUB_STEP_SUMMARY`** | Résumé des tests et des images publiées affiché sur la page du run |
-| **`if:`** | La publication n'a lieu que sur un `push` vers `main`, jamais sur une PR |
-
----
+| **Workflows réutilisables** (`workflow_call`) | Un fichier par étape, appelé avec des paramètres (`environnement`, `version`) ; `secrets: inherit` transmet les secrets de l'environnement |
+| **Jobs** | Les 4 contrôles tournent **en parallèle** sur des runners distincts |
+| **`needs:`** | Les images ne sont construites que si les 4 contrôles sont verts : c'est la **quality gate** |
+| **Environnements** | `dev`, `accp`, `production` : historique des déploiements, secrets propres (`KUBECONFIG`, `GHCR_LECTURE`) |
+| **Actions du marketplace** | `actions/checkout`, `actions/setup-java` et `actions/setup-node` (avec **cache Maven et npm**), `actions/upload-artifact`, `docker/login-action`, `helm/kind-action` |
+| **`permissions:`** | Lecture seule par défaut. `packages: write` est accordé **uniquement** aux jobs qui publient ou étiquettent les images (moindre privilège) |
+| **`secrets.GITHUB_TOKEN`** | Jeton éphémère généré par GitHub pour publier et lire sur GHCR. **Aucun secret à créer** pour la démo |
+| **`$GITHUB_STEP_SUMMARY`** | Version, images publiées et version recettée affichées sur la page du run |
+| **`if:`** | La publication n'a lieu que sur un `push`, jamais sur une PR |
 
 ## 3. Déroulé de la démonstration (environ 3 min)
 
 | # | Action | Ce que la direction voit |
 |---|---|---|
-| 1 | Montrer `ci.yml` dans le dépôt | Le pipeline est **du code**, versionné et relu comme le reste |
-| 2 | Pousser un commit sur `main` (ou *Run workflow*) | **Déclenchement** immédiat dans l'onglet *Actions* |
-| 3 | Ouvrir le run | Graphe des **4 jobs parallèles** puis du job images, avec le statut en temps réel |
-| 4 | Ouvrir le job images, étape « test de bout en bout » | La **boutique complète** démarre dans le runner : connexion, commande, notification reçue par le bus |
-| 5 | Montrer *Packages* | **Résultat** : les 9 images versionnées sont publiées dans GHCR |
-| 6 | `sh tools/demo/scenario.sh regression` → commit → push | Le job **backend** passe au rouge et les **images ne sont pas construites** |
-| 7 | Ouvrir une PR avec la régression | Le **statut rouge s'affiche directement sur la PR** : on ne peut pas fusionner en confiance |
-
----
+| 1 | Montrer `.github/workflows/` dans le dépôt | Le pipeline est **du code**, découpé par étape, versionné et relu comme le reste |
+| 2 | Ouvrir le run `dev` lancé avant la soutenance | Graphe des **4 contrôles parallèles**, puis des images et du déploiement dev |
+| 3 | Ouvrir le job images, étape « test de bout en bout » | La **boutique complète** démarre dans le runner : connexion, commande, notification reçue par le bus |
+| 4 | Montrer *Packages* | Les 9 images versionnées sont publiées sur GHCR |
+| 5 | Ouvrir le run `accp` | Les **mêmes images** sont promues sans reconstruction, puis tirées de GHCR par le cluster de recette |
+| 6 | Ouvrir une PR contenant la régression (`sh tools/demo/scenario.sh regression`) | Le **statut rouge s'affiche directement sur la PR** : on ne peut pas fusionner en confiance |
 
 ## 4. Contrôles du pipeline et comportement attendu
 

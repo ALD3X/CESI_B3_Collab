@@ -95,10 +95,10 @@ A ouvre et ferme la soutenance : le jury suit un fil rouge unique, et chaque com
 
 | Temps | Action à l'écran | Message oral |
 |---|---|---|
-| 0:00 | `.github/workflows/boutique.yml` dans le dépôt | « Le pipeline est du code. Une branche correspond à un environnement : dev, accp pour la recette, prod. » |
+| 0:00 | `.github/workflows/` dans le dépôt | « Le pipeline est du code, découpé en un fichier par étape. Une branche correspond à un environnement : dev, accp pour la recette, prod. » |
 | 0:20 | Onglet *Actions* : run `dev` vert **lancé avant la soutenance** | « 4 contrôles en parallèle, puis les 9 images : build, scan, test de bout en bout, publication. » |
-| 0:50 | Run `accp` | « En recette, on ne reconstruit pas : on promeut les mêmes images. La production exécutera exactement ce qui a été testé. » |
-| 1:20 | Onglet *Environments*, run `prod` | « Seule une version recettée peut partir en production, et uniquement sur déclenchement d'un approbateur. » |
+| 0:50 | Run `accp` | « En recette, on ne reconstruit pas : on promeut les mêmes images, et le cluster les tire lui-même depuis le registre GitHub. La production exécutera exactement ce qui a été testé. » |
+| 1:20 | Onglet *Environments*, run `prod` | « Seule une version recettée peut partir en production, et uniquement par le workflow de mise en production, réservé aux approbateurs. » |
 | 1:45 | — | « Limite : dans notre offre gratuite, GitHub refuse la protection de branche et l'approbation native. Nous l'avons compensée par une liste d'approbateurs. » |
 
 ### Démo 2 : Jenkins (B, 2:00)

@@ -1,7 +1,7 @@
 # Branches, environnements et chaîne de livraison (dev → accp → prod)
 
 > **Story :** US-04.5 · **Epic :** EPIC 04, CI/CD · **Entrées :** [US-02.2, cycle DevSecOps](../qualite-devsecops/cycle-devsecops.md) · [US-04.4, choix CI/CD](comparaison-et-choix.md) · [US-06.3, tests dans le pipeline](../kubernetes-et-tests/tests-dans-le-pipeline.md)
-> **Mise en œuvre :** [`.github/workflows/boutique.yml`](../../.github/workflows/boutique.yml) · [`Jenkinsfile`](../../Jenkinsfile) · scripts communs [`infra/ci/images.sh`](../../infra/ci/images.sh) et [`infra/ci/deployer.sh`](../../infra/ci/deployer.sh) · surcouches [`infra/k8s/overlays/`](../../infra/k8s/overlays/)
+> **Mise en œuvre :** [`.github/workflows/`](../../.github/workflows/) · [`Jenkinsfile`](../../Jenkinsfile) · scripts communs [`infra/ci/images.sh`](../../infra/ci/images.sh) et [`infra/ci/deployer.sh`](../../infra/ci/deployer.sh) · surcouches [`infra/k8s/overlays/`](../../infra/k8s/overlays/)
 
 **But :** livrer la boutique en passant par trois environnements, chacun associé à une branche Git, avec les mêmes garanties sur GitHub Actions et sur Jenkins.
 
@@ -66,12 +66,13 @@ Les surcouches Kustomize partent d'une **base commune** (`infra/k8s/base/`). Seu
 
 | Mécanisme | GitHub Actions | Jenkins |
 |---|---|---|
-| Une chaîne par branche | Déclencheurs `push` et `pull_request` sur `dev`, `accp`, `prod` ; jobs conditionnés par `github.ref_name` | Job **multi-branches** qui découvre `dev`, `accp`, `prod` et `feature/*` ; étapes conditionnées par `when { branch … }` |
+| Une chaîne par branche | Orchestrateur `pipeline.yml` : déclencheurs `push` et `pull_request` sur `dev`, `accp`, `prod`, appels conditionnés par `github.ref_name` vers des workflows réutilisables | Job **multi-branches** qui découvre `dev`, `accp`, `prod` et `feature/*` ; étapes conditionnées par `when { branch … }` |
 | Environnements | **Environnements GitHub** `dev`, `accp`, `production` : historique des déploiements, secrets propres à chaque environnement | Étapes dédiées, cluster cible configuré une fois (`connecter-minikube.sh`) |
-| Cible de déploiement | Avec le secret `KUBECONFIG` de l'environnement : le vrai cluster. Sans : un **cluster éphémère** (kind) créé dans le runner, pour valider le déploiement | Le cluster Kubernetes local (minikube) et le Docker de l'hôte |
-| Approbation de la production | Relecteurs obligatoires de l'environnement `production` (offre Pro ou dépôt public). **Dans notre dépôt privé gratuit**, mesure compensatoire : déclenchement manuel (*Run workflow*) limité à la liste `APPROBATEURS_PROD` | Étape **`input`** native, réservée à l'utilisateur `admin`, expiration au bout de 30 min |
+| Cible de déploiement | Avec le secret `KUBECONFIG` de l'environnement : le vrai cluster. Sans : un **cluster éphémère** (kind) créé dans le runner. Dans les deux cas, **le cluster tire les images sur GHCR** grâce à un secret d'accès au registre | Le cluster Kubernetes local (minikube) et le Docker de l'hôte |
+| Approbation de la production | Relecteurs obligatoires de l'environnement `production` (offre Pro ou dépôt public). **Dans notre dépôt privé gratuit**, mesure compensatoire : workflow `mise-en-production.yml`, déclenché à la main et réservé à la liste `APPROBATEURS_PROD` | Étape **`input`** native, réservée à l'utilisateur `admin`, expiration au bout de 30 min |
 | Tests des applications | `turbo run test` (front et backend, cache turbo) | Front : `turbo run test` ; backend : la même commande Maven dans l'image Maven |
 | Promotion des images | `infra/ci/images.sh` (GHCR) | `infra/ci/images.sh` (registre local) |
+| Récupération des images par le cluster | Le cluster tire les images sur GHCR (`imagePullSecret` créé par `infra/ci/deployer.sh`) | Images chargées dans les nœuds minikube (le registre local n'est pas joignable depuis le cluster) |
 
 > **Constat :** dans un dépôt privé de l'offre gratuite, GitHub refuse à la fois la **protection des branches** et l'**approbation** des environnements (« *Upgrade to GitHub Pro or make this repository public* »). Jenkins offre ces contrôles sans licence, mais il faut l'exploiter. Ce point complète la comparaison de [US-04.4](comparaison-et-choix.md).
 
